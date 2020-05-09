@@ -5,7 +5,7 @@
 # Copyright (c) 2020 Mickael Gaillard <mick.gaillard@gmail.com>
 
 from flask import ( Blueprint, render_template )
-from .controller import ( winch, State )
+from openwinch.controller import ( winch, State )
 
 web_main = Blueprint('web_main', __name__)
 

@@ -11,3 +11,10 @@ If you like **OpenWinch**, give it a star, or fork it and contribute!
 
 [![GitHub stars](https://img.shields.io/github/stars/OpenWinch/OpenWinch-Python.svg?style=social&label=Star)](https://github.com/OpenWinch/OpenWinch-Python/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/OpenWinch/OpenWinch-Python.svg?style=social&label=Fork)](https://github.com/OpenWinch/OpenWinch-Python/network)
+
+## Documentation
+
+for start controller :
+```python3 -m openwinch```
+
+connect to http://localhost:5000

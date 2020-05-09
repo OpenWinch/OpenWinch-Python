@@ -4,7 +4,7 @@
 # OpneWinchPy : a library for controlling the Raspberry Pi's Winch
 # Copyright (c) 2020 Mickael Gaillard <mick.gaillard@gmail.com>
 
-from .version import __version__
+from openwinch.version import __version__
 from enum import Enum
 
 import atexit

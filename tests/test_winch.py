@@ -2,11 +2,11 @@
 # -*- coding: UTF-8 -*-
 
 import unittest
-from .context import openwinchpy
+from .context import openwinch
 import time
 
-from openwinchpy import ( winch, State )
-from openwinchpy.controller import ( Winch )
+from openwinch import ( winch, State )
+from openwinch.controller import ( Winch )
 
 class WinchTest(unittest.TestCase):
 
