@@ -1,0 +1,54 @@
+body {
+    text-align:center;
+    background:#252525;
+  }
+  button {
+    border:0;
+    border-radius:0.3rem;
+    color:#faffff;
+    font-size:1.2rem;
+    width:100%;
+    -webkit-transition-duration:0.4s;
+    transition-duration:0.4s;
+    cursor:pointer;
+  }
+  footer {
+    text-align:right;
+    font-size:11px;
+  }
+  .btn-cmd {
+    background:#1fa3ec;
+    line-height:7.4rem;
+    margin-bottom:20px;
+  }
+  .btn-speed {
+    background:#1fa3ec;
+    line-height:2.4rem;
+    margin-bottom:10px;
+  }
+  #value-speed {
+    margin-bottom:10px;
+    text-align:center;
+    font-weight:bold;
+    font-size:62px;
+    width:100%
+  }
+  #content {
+    text-align:left;
+    display:inline-block;
+    color:#eaeaea;
+    min-width:340px;
+  }
+  #speed {
+    margin-top:10px;
+  }
+  #cmd {
+    margin-top:10px;
+  }
+  #info {
+
+  }
+  #header {
+    text-align:center;
+    color:#eaeaea;
+  }

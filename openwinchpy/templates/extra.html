@@ -1,0 +1,24 @@
+{% extends "master.html" %}
+
+{% block title %}Extra{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style type="text/css">
+        .important { color: #336699; }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div id="cmd">
+  <a href="/reset"><button class="btn-cmd" style="background-color: rgb(230, 167, 31);">Reset</button></a>
+  <table style="width: 100%;">
+    <tbody >
+      <tr><th><a href="/left"><button class="btn-cmd" style="background-color: green;font-size: 6.2rem;"><<<</button></a>
+      </th><th><a href="/right"><button class="btn-cmd" style="background-color: crimson;font-size: 6.2rem;">>>></button></a>
+      </th></tr>
+    </tbody>
+  </table>
+  <a href="/"><button class="btn-speed">Back</button></a>
+</div>
+{% endblock %}

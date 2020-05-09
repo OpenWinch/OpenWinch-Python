@@ -1,0 +1,43 @@
+{% extends "master.html" %}
+
+{% block title %}Control{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <!--script src="script.js"></script-->
+    <script language="javascript">
+      setInterval(function(){
+        url = "http://{{ ip }}:5000/";
+        window.location.assign(url);
+        //window.location = url;
+        //window.location.reload(1);
+      }, 3000);
+      </script>
+{% endblock %}
+
+{% block content %}
+<div id="info">
+  <table>
+    <tbody>
+      <tr><th style="width: 230px;;">Mode</th><td>{{ mode }}</td></tr>
+      <tr><th>Bat</th><td>{{ battery }} %</td></tr>
+    </tbody>
+  </table>
+</div>
+<div id="speed">
+  <a href="/up"><button class="btn-speed">+</button></a>
+  <div id="value-speed" style="color: {{ enable }};">{{ speed_target }} {{ speed_unit }}</div>
+  <a href="/down"><button class="btn-speed">-</button></a>
+</div>
+<div id="cmd">
+  <table style="width: 100%;">
+    <tbody >
+      <tr><th><a href="/start"><button class="btn-cmd" style="background-color: green;">Start</button></a>
+      </th><th><a href="/stop"><button class="btn-cmd" style="background-color: crimson;">Stop</button></a>
+      </th></tr>
+    </tbody>
+  </table>
+  <a href="/halt"><button class="btn-cmd" style="background-color: red;">!! EMERGENCY !!</button></a>
+  <a href="/extra"><button class="btn-speed">Extra</button></a>
+</div>
+{% endblock %}
