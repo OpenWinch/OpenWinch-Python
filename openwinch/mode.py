@@ -52,7 +52,7 @@ class ModeEngine(ABC):
             logger.debug("Current state : %s - speed : %s" % (self._winch.getState(), self._speed_current))
 
             # Order start or running
-            if (self._winch.getState() == openwinch.controller.State.RUNNING or self._winch.getState() == openwinch.controller.State.START):
+            if (openwinch.controller.State.RUNNING == self._winch.getState() or openwinch.controller.State.START == self._winch.getState()):
                 # Increment speed
                 if (self._speed_current < self._winch.getSpeedTarget()):
                     self._speed_current += self._velocity_start
@@ -72,7 +72,7 @@ class ModeEngine(ABC):
                         self._speed_current = 0
 
             # Order to stop
-            elif (self._winch.getState() == openwinch.controller.State.STOP):
+            elif (openwinch.controller.State.STOP == self._winch.getState()):
                 if (self._speed_current > 0):
                     if (self._speed_current > self._velocity_stop):
                         self._speed_current -= self._velocity_stop
@@ -84,8 +84,13 @@ class ModeEngine(ABC):
                     self._winch.stoped()
 
             # EMERGENCY Order
-            elif (self._winch.getState() == openwinch.controller.State.ERROR):
+            elif (openwinch.controller.State.ERROR == self._winch.getState()):
+                self._board.emergency()
                 self._speed_current = 0
+
+            elif (openwinch.controller.State.INIT == self._winch.getState()):
+                self._speed_current = 0
+                self._board.initialize()
 
             self.extraMode()
 
