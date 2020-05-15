@@ -127,12 +127,14 @@ class InfinityMode(ModeEngine):
 
 def modeFactory(winch, board, mode):
     """ """
-    if (mode == Mode.OneWay):
+    if (mode == str(Mode.OneWay)):
         return OneWayMode(winch, board)
-    elif (mode == Mode.TwoWay):
+    elif (mode == str(Mode.TwoWay)):
         return TwoWayMode(winch, board)
-    elif (mode == Mode.Infinity):
+    elif (mode == str(Mode.Infinity)):
         return InfinityMode(winch, board)
+    else:
+        raise NameError('Bad Mode config')
 
 def getMode(modeEngine) -> Mode:
     """ """
