@@ -9,12 +9,14 @@ from openwinch.logger import logger
 from abc import ABC, abstractmethod
 from enum import Enum, unique
 
+
 @unique
 class SpeedMode(Enum):
     """ Speed Mode. """
-    LOW     = 0
-    MEDIUM  = 1
-    HIGH    = 2
+    LOW = 0
+    MEDIUM = 1
+    HIGH = 2
+
 
 class Board(ABC):
 
@@ -50,7 +52,7 @@ class Board(ABC):
 
 class Emulator(Board):
     __value = 0
-    
+
     def initialize(self):
         logger.info("IO : Emulator Initialized !")
 

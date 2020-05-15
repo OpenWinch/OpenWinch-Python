@@ -4,11 +4,18 @@
 # OpneWinchPy : a library for controlling the Raspberry Pi's Winch
 # Copyright (c) 2020 Mickael Gaillard <mick.gaillard@gmail.com>
 
-from openwinch.hardware import ( Board, SpeedMode )
-from openwinch.hardware_config import *
+from openwinch.hardware import (Board, SpeedMode)
+from openwinch.hardware_config import (IN_REVERSE,
+                                       OUT_REVERSE,
+                                       IN_MOVE_LEFT,
+                                       IN_MOVE_RIGHT,
+                                       OUT_SPD_LO,
+                                       OUT_SPD_HI,
+                                       OUT_THROTTLE)
 from openwinch.logger import logger
 
 from gpiozero import Button, PWMOutputDevice, OutputDevice
+
 
 class RaspberryPi(Board):
 
@@ -20,7 +27,7 @@ class RaspberryPi(Board):
         self.__reverse_cmd = OutputDevice(OUT_REVERSE)
 
         # Move
-        self.__move_left_btn  = Button(IN_MOVE_LEFT)
+        self.__move_left_btn = Button(IN_MOVE_LEFT)
         self.__move_right_btn = Button(IN_MOVE_RIGHT)
 
         # Speed mode (Lo, Medium, Hi)
@@ -32,9 +39,9 @@ class RaspberryPi(Board):
 
         # Register event
         self.__reverse_btn.when_pressed = self.__pressedReverse
-        self.__reverse_btn.when_held    = self.__pressedInit
-        self.__move_left_btn            = self.__pressedLeft
-        self.__move_right_btn           = self.__pressedRight
+        self.__reverse_btn.when_held = self.__pressedInit
+        self.__move_left_btn = self.__pressedLeft
+        self.__move_right_btn = self.__pressedRight
 
         self.initialize()
 
@@ -46,7 +53,7 @@ class RaspberryPi(Board):
         self.__throttle_cmd.value = 0
 
         logger.info("IO : Hardware Initialized !")
-        
+
     def __pressedRight(self):
         logger.debug("IO : Move Right pressed !")
 

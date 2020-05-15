@@ -5,7 +5,7 @@
 # Copyright (c) 2020 Mickael Gaillard <mick.gaillard@gmail.com>
 
 from openwinch.logger import logger
-from openwinch.constantes import *
+from openwinch.constantes import (MOTOR_MAX, LOOP_DELAY)
 import openwinch.controller
 
 from enum import Enum, unique
@@ -14,22 +14,24 @@ from abc import ABC, abstractmethod
 import threading
 import time
 
+
 @unique
 class Mode(Enum):
     """ Mode of Winch. """
     OneWay = 1
     TwoWay = 2
-    Infinity =3
+    Infinity = 3
 
     def list() -> dict:
         return list(Mode)
 
+
 class ModeEngine(ABC):
     _board = None
     _winch = None
-    _speed_current  = 0
+    _speed_current = 0
     _velocity_start = 1
-    _velocity_stop  = 3
+    _velocity_stop = 3
     __speed_ratio = 1
 
     def __init__(self, winch, board):
@@ -48,7 +50,7 @@ class ModeEngine(ABC):
 
         while getattr(t, "do_run", True):
             logger.debug("Current state : %s - speed : %s" % (self._winch.getState(), self._speed_current))
-            
+
             # Order start or running
             if (self._winch.getState() == openwinch.controller.State.RUNNING or self._winch.getState() == openwinch.controller.State.START):
                 # Increment speed
@@ -62,13 +64,13 @@ class ModeEngine(ABC):
                 if (self._speed_current > self._winch.getSpeedTarget()):
                     vel_stop = self._velocity_stop
                     diff_stop = self._speed_current - self._winch.getSpeedTarget()
-                    if (vel_stop > diff_stop ):
+                    if (vel_stop > diff_stop):
                         vel_stop = diff_stop
                     if (self._speed_current > vel_stop):
                         self._speed_current -= vel_stop
                     else:
                         self._speed_current = 0
-                
+
             # Order to stop
             elif (self._winch.getState() == openwinch.controller.State.STOP):
                 if (self._speed_current > 0):
@@ -84,9 +86,9 @@ class ModeEngine(ABC):
             # EMERGENCY Order
             elif (self._winch.getState() == openwinch.controller.State.ERROR):
                 self._speed_current = 0
-            
+
             self.extraMode()
-            
+
             time.sleep(LOOP_DELAY)
         logger.debug("Stopping Control Loop.")
 
@@ -98,26 +100,29 @@ class ModeEngine(ABC):
         value = self.__speed_ratio * self._speed_current
         self._board.setThrottleValue(value)
 
+
 class OneWayMode(ModeEngine):
 
     def extraMode(self):
-        if (False): # Limit position START
+        if (False):  # Limit position START
             self._winch.stop()
             return
-        
+
         self.setThrottleValue()
+
 
 class TwoWayMode(ModeEngine):
 
     def extraMode(self):
-        if (False): # Limit Position START
+        if (False):  # Limit Position START
             self._winch.stop()
             self._board.setReverse(True)
-        if (False): # Limit Position END
+        if (False):  # Limit Position END
             self._winch.stop()
             self._board.setReverse(False)
-        
+
         self.setThrottleValue()
+
 
 class InfinityMode(ModeEngine):
 
@@ -135,6 +140,7 @@ def modeFactory(winch, board, mode):
         return InfinityMode(winch, board)
     else:
         raise NameError('Bad Mode config')
+
 
 def getMode(modeEngine) -> Mode:
     """ """
