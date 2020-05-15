@@ -5,35 +5,37 @@
 # Copyright (c) 2020 Mickael Gaillard <mick.gaillard@gmail.com>
 
 from openwinch.version import __version__
-from openwinch.mode import ( modeFactory, getMode, Mode, ModeEngine, OneWayMode, TwoWayMode, InfinityMode )
+from openwinch.mode import (modeFactory, getMode, Mode)
 from openwinch.logger import logger
 from openwinch.utils import loadClass
-from openwinch.constantes import *
-from openwinch.config import ( config )
+from openwinch.constantes import (SPEED_INIT, SPEED_MAX, SPEED_MIN)
+from openwinch.config import config
 
 from enum import Enum, unique
 
 import atexit
 import threading
 
+
 @unique
 class State(Enum):
     """ State of Winch. """
-    ERROR   = -999
+    ERROR = -999
     UNKNOWN = -1
-    INIT    = 0
-    IDLE    = 1
-    START   = 2
+    INIT = 0
+    IDLE = 1
+    START = 2
     RUNNING = 3
-    STOP    = 4
+    STOP = 4
+
 
 class Winch(object):
     """ Winch controller class. """
 
     __state = State.UNKNOWN
     __speed_target = SPEED_INIT
-    #__controlLoop
-    #__log
+    # __controlLoop
+    # __log
 
     def __init__(self):
         """ Constructor of Winch class. """
@@ -54,12 +56,12 @@ class Winch(object):
 
     def __banner(self):
         logger.info("""
-   ____                 _       ___            __  
-  / __ \____  ___  ____| |     / (_)___  _____/ /_ 
+   ____                 _       ___            __
+  / __ \____  ___  ____| |     / (_)___  _____/ /_
  / / / / __ \/ _ \/ __ \ | /| / / / __ \/ ___/ __ \\
 / /_/ / /_/ /  __/ / / / |/ |/ / / / / / /__/ / / /
-\____/ .___/\___/_/ /_/|__/|__/_/_/ /_/\___/_/ /_/ 
-    /_/                                            Ver. %s""" % __version__)
+\____/ .___/\___/_/ /_/|__/|__/_/_/ /_/\___/_/ /_/
+    /_/                                            Ver. %s""" % __version__) # noqa
 
     def __loadConfig(self):
         logger.debug("Board config : %s" % config.BOARD)
@@ -124,13 +126,13 @@ class Winch(object):
 
         else:
             logger.error("Not possible to stop, re-initialize Winch !")
-    
+
     def stoped(self):
         """ Call when hardware stop completely. """
 
         if (self.__state == State.STOP):
             self.__changeState(State.IDLE)
-    
+
     def emergency(self):
         """ Command Emergency winch. """
 
@@ -140,11 +142,13 @@ class Winch(object):
     def display(self):
         """ Process display in console. """
 
-        print("State\t: %s\nTarget Speed\t: %s\nCurrent speed\t: %s" % (self.__state, self.__speed_target, self.__mode.getSpeedCurrent()))
+        print("State\t: %s\nTarget Speed\t: %s\nCurrent speed\t: %s" % (self.__state,
+                                                                        self.__speed_target,
+                                                                        self.__mode.getSpeedCurrent()))
 
     def __changeState(self, state):
         """ Change State of machine-state
-        
+
         Parameters
         ----------
         mode : State Enum
@@ -165,6 +169,10 @@ class Winch(object):
     def getState(self):
         """ Get actual state of winch. """
         return self.__state
+
+    def getBattery(self):
+        """ Get actual state of Battery. """
+        return 90
 
     def speedUp(self, value=1):
         """ Up speed.

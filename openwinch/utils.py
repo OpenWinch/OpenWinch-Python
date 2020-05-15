@@ -8,6 +8,7 @@ from openwinch.logger import logger
 
 import importlib
 
+
 def loadClass(fullclass):
     """Return a class instance from a string reference"""
     module_name, class_name = fullclass.rsplit(".", 1)

@@ -2,17 +2,18 @@
 # -*- coding: UTF-8 -*-
 
 import unittest
-from .context import openwinch
+from .context import openwinch  # noqa
 import time
 
-from openwinch import ( winch, State )
-from openwinch.controller import ( Winch )
+from openwinch import winch
+from openwinch.controller import Winch
+
 
 class WinchTest(unittest.TestCase):
 
     def test_winch_instance(self):
         self.assertIsInstance(winch, Winch)
-    
+
     @unittest.skip("for dev only")
     def test_winch_dev(self):
         winch.initialize()
@@ -48,5 +49,5 @@ class WinchTest(unittest.TestCase):
 
         winch.speedUp(5)
         time.sleep(1)
-        
+
         print("END !!")

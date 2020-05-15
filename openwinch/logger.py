@@ -5,12 +5,14 @@
 # Copyright (c) 2020 Mickael Gaillard <mick.gaillard@gmail.com>
 
 import logging
-from logging.config import fileConfig
+
+# from logging.config import fileConfig
+
 
 def __initLogger():
     """ Initialize logger. """
 
-    #fileConfig('logging_config.ini')
+    # fileConfig('logging_config.ini')
 
     log = logging.getLogger('OpenWinch')
     log.setLevel(logging.DEBUG)
@@ -34,5 +36,6 @@ def __initLogger():
     log.addHandler(ch)
 
     return log
+
 
 logger = __initLogger()
