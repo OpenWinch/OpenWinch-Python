@@ -89,9 +89,12 @@ class Winch(object):
 
         logger.debug("Initialize Winch hardware...")
         self.__changeState(State.INIT)
-        # Split in two function
-        self.__changeState(State.IDLE)
-        logger.info("Initialized Winch !")
+    
+    def initialized(self):
+        """ Call when hardware stop completely. """
+
+        if (self.__state == State.INIT):
+            self.__changeState(State.IDLE)
 
     def start(self):
         """ Command Start winch. """
@@ -127,7 +130,7 @@ class Winch(object):
         else:
             logger.error("Not possible to stop, re-initialize Winch !")
 
-    def stoped(self):
+    def stopped(self):
         """ Call when hardware stop completely. """
 
         if (self.__state == State.STOP):
