@@ -49,4 +49,15 @@ class Board(ABC):
 
 
 class Emulator(Board):
-    pass
+    __value = 0
+    
+    def initialize(self):
+        logger.info("IO : Emulator Initialized !")
+
+    def setThrottleValue(self, value):
+        if (self.__value != value):
+            self.__value = value
+            logger.debug("IO : Throttle to %s" % self.__value)
+
+    def getThrottleValue(self):
+        logger.debug("IO : Throttle to %s" % self.__value)

@@ -9,6 +9,7 @@ from openwinch.mode import ( modeFactory, getMode, Mode, ModeEngine, OneWayMode,
 from openwinch.logger import logger
 from openwinch.utils import loadClass
 from openwinch.constantes import *
+from openwinch.config import ( config )
 
 from enum import Enum, unique
 
@@ -61,10 +62,12 @@ class Winch(object):
     /_/                                            Ver. %s""" % __version__)
 
     def __loadConfig(self):
-        board = loadClass("openwinch.hardwarePi.RaspberryPi")
+        logger.debug("Board config : %s" % config.BOARD)
+        board = loadClass(config.BOARD)
         logger.info("Board : %s" % type(board).__name__)
 
-        self.__mode = modeFactory(self, board, Mode.OneWay)
+        logger.debug("Mode config : %s" % config.MODE)
+        self.__mode = modeFactory(self, board, config.MODE)
         logger.info("Mode : %s" % self.getMode())
 
     def __initControlLoop(self):
