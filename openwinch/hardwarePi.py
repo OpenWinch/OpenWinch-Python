@@ -46,16 +46,6 @@ class RaspberryPi(Board):
         self.__move_left_btn = self.__pressedLeft
         self.__move_right_btn = self.__pressedRight
 
-    def initialize(self):
-        """ Initialize """
-        self.setReverse(False)
-        self.setSpeedMode(SpeedMode.LOW)
-        self.__throttle_cmd.value = 0
-        self.__throttle_cmd.on()
-
-        self.__power_cmd.on()
-        logger.info("IO : Hardware Initialized !")
-
     def __pressedRight(self):
         logger.debug("IO : Move Right pressed !")
 
@@ -69,6 +59,17 @@ class RaspberryPi(Board):
     def __pressedReverse(self):
         logger.debug("IO : Reverse pressed !")
         self.setReverse(not self.isReverse())
+
+    def initialize(self):
+        """ Initialize """
+        super().initialize()
+        self.setReverse(False)
+        self.setSpeedMode(SpeedMode.LOW)
+        self.__throttle_cmd.value = 0
+        self.__throttle_cmd.on()
+
+        self.__power_cmd.on()
+        logger.info("IO : Hardware Initialized !")
 
     def emergency(self):
         logger.debug("IO : Shutdown power !")
@@ -85,14 +86,11 @@ class RaspberryPi(Board):
     def setSpeedMode(self, speed_mode):
         super().setSpeedMode(speed_mode)
         if (self._speed_mode == SpeedMode.LOW):
-            self.__speedLo_cmd.on()
-            self.__speedHi_cmd.off()
-        elif (self._speed_mode == SpeedMode.MEDIUM):
-            self.__speedLo_cmd.off()
-            self.__speedHi_cmd.off()
+            self.__speed_cmd.off()
+        # elif (self._speed_mode == SpeedMode.MEDIUM):
+        #     self.__speed_cmd.off()
         elif (self._speed_mode == SpeedMode.HIGH):
-            self.__speedLo_cmd.off()
-            self.__speedHi_cmd.on()
+            self.__speed_cmd.on()
 
     def setReverse(self, enable):
         super().setReverse(enable)
