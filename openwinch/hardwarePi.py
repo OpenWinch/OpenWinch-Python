@@ -4,6 +4,7 @@
 # OpneWinchPy : a library for controlling the Raspberry Pi's Winch
 # Copyright (c) 2020 Mickael Gaillard <mick.gaillard@gmail.com>
 
+from openwinch.controller import Winch
 from openwinch.hardware import (Board, SpeedMode)
 from openwinch.hardware_config import (IN_REVERSE,
                                        OUT_REVERSE,
@@ -19,8 +20,9 @@ from gpiozero import Button, PWMOutputDevice, OutputDevice
 
 class RaspberryPi(Board):
 
-    def __init__(self):
+    def __init__(self, winch: Winch):
         logger.debug("IO : Initialize Hardware...")
+        super().__init__(winch)
 
         # Power
         self.__power_cmd = OutputDevice(OUT_PWR)

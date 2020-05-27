@@ -4,8 +4,10 @@
 # OpneWinchPy : a library for controlling the Raspberry Pi's Winch
 # Copyright (c) 2020 Mickael Gaillard <mick.gaillard@gmail.com>
 
-from openwinch.logger import logger
+from openwinch.controller import Winch
+from openwinch.display_config import LCD_MODE
 from openwinch.display import Lcd
+from openwinch.logger import logger
 
 from abc import ABC, abstractmethod
 from enum import Enum, unique
@@ -21,13 +23,21 @@ class SpeedMode(Enum):
 
 class Board(ABC):
 
+    _winch = None
     _reverse = False
     _speed_mode = SpeedMode.LOW
     _rotation_from_init = 0
 
+    def __init__(self, winch: Winch):
+        self._winch = winch
+        if (LCD_MODE != 0):
+            self._lcd = Lcd(self._winch)
+            self._lcd.boot()
+
     @abstractmethod
     def initialize(self):
         self._rotation_from_init = 0
+        self._lcd.booted()
 
     @abstractmethod
     def emergency(self):
@@ -54,12 +64,15 @@ class Board(ABC):
         self._speed_mode = speed_mode
         logger.debug("IO : Change Speed mode to %s" % self.getSpeedMode())
 
-    def getSpeedMode(self):
+    def getSpeedMode(self) -> SpeedMode:
         return self._speed_mode
-    
+
+    def getBattery(self) -> int:
+        return 100
+
     def getRotationFromInit(self):
         return self._rotation_from_init
-    
+
     def getRotationFromExtend(self):
         return 60
 
@@ -89,9 +102,9 @@ class Emulator(Board):
 
     def getThrottleValue(self):
         logger.debug("IO : Throttle to %s" % self.__value)
-    
+
     def setSpeedMode(self, speed_mode):
         super().setSpeedMode(speed_mode)
-    
+
     def setReverse(self, enable):
         super().setReverse(enable)

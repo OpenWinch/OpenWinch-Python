@@ -20,8 +20,9 @@ import threading
 @unique
 class State(Enum):
     """ State of Winch. """
-    ERROR = -999
-    UNKNOWN = -1
+    UNKNOWN = -999
+    BOOTED = -2
+    ERROR = -1
     INIT = 0
     IDLE = 1
     START = 2
@@ -65,7 +66,7 @@ class Winch(object):
 
     def __loadConfig(self):
         logger.debug("Board config : %s" % config.BOARD)
-        board = loadClass(config.BOARD)
+        board = loadClass(config.BOARD, self)
         logger.info("Board : %s" % type(board).__name__)
 
         logger.debug("Mode config : %s" % config.MODE)
@@ -78,6 +79,7 @@ class Winch(object):
         logger.debug("Initialize Control Loop...")
         self.__controlLoop = threading.Thread(target=self.__mode.runControlLoop, name="Ctrl", args=(), daemon=True)
         self.__controlLoop.start()
+        self.__changeState(State.BOOTED)
 
     def initialize(self):
         """ Initialise Hardware.
@@ -176,6 +178,9 @@ class Winch(object):
     def getBattery(self):
         """ Get actual state of Battery. """
         return 90
+
+    def getRemote(self):
+        return 15
 
     def speedUp(self, value=1):
         """ Up speed.

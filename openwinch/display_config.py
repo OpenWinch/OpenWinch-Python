@@ -20,6 +20,6 @@ COLOR_SELC_BACK = "white"
 # 0=Disable, 1=Oled , 2=Emulator , 3=Capture
 LCD_MODE = 2
 
-font_path = "openwinch/fonts/FreePixel.ttf"
-font_path2 = "openwinch/fonts/fontawesome-webfont.ttf"
-font_path3 = "openwinch/fonts/SLANT.TTF"
+FONT_TEXT = "openwinch/fonts/FreePixel.ttf"
+FONT_ICON = "openwinch/fonts/fontawesome-webfont.ttf"
+FONT_LOGO = "openwinch/fonts/SLANT.TTF"

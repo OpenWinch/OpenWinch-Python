@@ -15,7 +15,8 @@ import sys
 import click
 import threading
 
-from openwinch.hardware_config import (LCD_HEIGHT, LCD_WIDTH, LCD_ADDR)
+from openwinch.controller import State
+from openwinch.constantes import SPEED_UNIT
 from openwinch.display_config import (UP,
                                       LEFT,
                                       RIGHT,
@@ -27,30 +28,23 @@ from openwinch.display_config import (UP,
                                       COLOR_SELC_FONT,
                                       COLOR_SELC_BACK,
                                       LCD_MODE,
-                                      font_path,
-                                      font_path2,
-                                      font_path3)
-
+                                      FONT_TEXT,
+                                      FONT_ICON,
+                                      FONT_LOGO)
+from openwinch.hardware_config import (LCD_HEIGHT, LCD_WIDTH, LCD_ADDR)
+from openwinch.version import __version__
 
 class Lcd(object):
     cursor_pos = 1
     view_pos = 0
 
+    __winch = None
     __device = None
     screen = None
 
-    speed_value = 38
-    speed_unit = "Km/h"
-    distance = 1
-    battery_value = 70
-    wifi_value = 15
-    # state 0=IDLE, 1=RUNNING, 2=EMERGENCY
-    state=0
+    # distance = 1
 
-    def getPos(self):
-        return self.cursor_pos
-
-    def __init__(self):
+    def __init__(self, winch):
         if (LCD_MODE == 1):
             from luma.core.interface.serial import i2c
             serial_interface = i2c(port=1, address=LCD_ADDR)
@@ -60,27 +54,37 @@ class Lcd(object):
         elif (LCD_MODE == 3):
             self.__device = capture(width=LCD_WIDTH, height=LCD_HEIGHT, rotate=0, mode='1', transform='scale2x', scale=2, file_template="docs/images/screens/OpenWinch_{0:06}.png")
 
+        self.__winch = winch
         self.__device.show()
-        self.__font = ImageFont.truetype(font_path, 8)
+        self.__font = ImageFont.truetype(FONT_TEXT, 8)
 
         self.screen = MainScreen(self)
+
+    def getWinch(self):
+        return self.__winch
 
     def boot(self):
         with canvas(self.__device) as draw:
             font_size = 20
             name = "OpenWinch"
-            version = "1.0.0"
-            x = (LCD_WIDTH / 2) - (len(name)/2 * font_size / 2)
-            xver = (LCD_WIDTH / 2) + (((len(name)/2)-1) * font_size / 2)
-            y = (LCD_HEIGHT / 2) - (font_size/2)
-            yver = y+font_size
-            draw.text((x, y), name, fill=COLOR_PRIM_FONT, font=ImageFont.truetype(font_path3, font_size))
-            draw.text((xver, yver), version, fill=COLOR_PRIM_FONT, font=ImageFont.truetype(font_path, 8))
+
+            x = (LCD_WIDTH / 2) - (len(name) / 2 * font_size / 2)
+            xver = (LCD_WIDTH / 2) + (((len(name) / 2) - 1) * font_size / 2)
+            y = (LCD_HEIGHT / 2) - (font_size / 2)
+            yver = y + font_size
+
+            draw.text((x, y), name, fill=COLOR_PRIM_FONT, font=ImageFont.truetype(FONT_LOGO, font_size))
+            draw.text((xver, yver), __version__, fill=COLOR_PRIM_FONT, font=ImageFont.truetype(FONT_TEXT, 8))
+
+        self.__displayLoop = threading.Thread(target=self.loop, name="display", args=(), daemon=True)
+        self.__displayLoop.start()
 
     def display(self):
         with canvas(self.__device) as draw:
             self.screen.display(draw)
-        #time.sleep(2)
+
+    def getPos(self):
+        return self.cursor_pos
 
     def enter(self, key):
         # Directional Common
@@ -102,40 +106,41 @@ class Lcd(object):
 
     def statusBar(self, draw):
         # Battery
+        _battery = self.__winch.getBattery()
         battery_symbol = ""
-        if (self.battery_value > 87.5):
+        if (_battery > 87.5):
             battery_symbol = ""
-        elif (self.battery_value > 62.5):
+        elif (_battery > 62.5):
             battery_symbol = ""
-        elif (self.battery_value > 37.5):
+        elif (_battery > 37.5):
             battery_symbol = ""
-        elif (self.battery_value > 12.5):
+        elif (_battery > 12.5):
             battery_symbol = ""
 
         battery_x = 2
-        draw.text((battery_x, 0), battery_symbol, fill=COLOR_PRIM_FONT, font=ImageFont.truetype(font_path2, 8))
-        draw.text((battery_x + 15, 1), "%s%%" % self.battery_value, fill=COLOR_PRIM_FONT, font=self.__font)
+        draw.text((battery_x, 0), battery_symbol, fill=COLOR_PRIM_FONT, font=ImageFont.truetype(FONT_ICON, 8))
+        draw.text((battery_x + 15, 1), "%s%%" % _battery, fill=COLOR_PRIM_FONT, font=self.__font)
 
         # Wifi
         wifi_x = 105
-        draw.text((wifi_x, 0), "", fill=COLOR_PRIM_FONT, font=ImageFont.truetype(font_path2, 8))
-        draw.text((wifi_x + 7, 1), "%s " % self.wifi_value, fill=COLOR_PRIM_FONT, font=self.__font)
+        draw.text((wifi_x, 0), "", fill=COLOR_PRIM_FONT, font=ImageFont.truetype(FONT_ICON, 8))
+        draw.text((wifi_x + 7, 1), "%s " % self.__winch.getRemote(), fill=COLOR_PRIM_FONT, font=self.__font)
 
     def createValue(self, draw, title, value):
-        draw.text((0, 0), title, fill=COLOR_PRIM_FONT, font=ImageFont.truetype(font_path, 12))
+        draw.text((0, 0), title, fill=COLOR_PRIM_FONT, font=ImageFont.truetype(FONT_TEXT, 12))
         draw.rectangle([0, 12, LCD_WIDTH, 12], fill="white", outline="white")
-        draw.text((2, 18), "%s" % value, fill=COLOR_PRIM_FONT, font=ImageFont.truetype(font_path, 14))
+        draw.text((2, 18), "%s" % value, fill=COLOR_PRIM_FONT, font=ImageFont.truetype(FONT_TEXT, 14))
 
         y = 0.78 * LCD_HEIGHT
         draw.rectangle([0, y, LCD_WIDTH, LCD_HEIGHT], fill="white", outline="white")
-        draw.text((0, 0.80 * LCD_HEIGHT), "exit to save...", fill="black", font=ImageFont.truetype(font_path, 12))
+        draw.text((0, 0.80 * LCD_HEIGHT), "exit to save...", fill="black", font=ImageFont.truetype(FONT_TEXT, 12))
 
-    def createMenuScroll(self, draw, items, selected_item = None):
+    def createMenuScroll(self, draw, items, selected_item=None):
         font_size = 12
         draw_cursor_pos = 0
         draw_view_pos = 0
 
-        cursor_limit_screen = (LCD_HEIGHT / font_size)-1
+        cursor_limit_screen = (LCD_HEIGHT / font_size) - 1
         if (self.cursor_pos > cursor_limit_screen):
             draw_view_pos = -((self.cursor_pos - cursor_limit_screen) * font_size)
 
@@ -145,11 +150,11 @@ class Lcd(object):
 
             if (self.cursor_pos == draw_cursor_pos):
                 text_color = "black"
-                draw.rectangle([0, draw_view_pos + y, LCD_WIDTH, draw_view_pos + y +font_size], fill="white", outline="white")
+                draw.rectangle([0, draw_view_pos + y, LCD_WIDTH, draw_view_pos + y + font_size], fill="white", outline="white")
 
-            if (selected_item != None and  selected_item == item):
-                draw.text((LCD_WIDTH - font_size , draw_view_pos + y), "", fill=text_color, font=ImageFont.truetype(font_path2, font_size - 2))
-            draw.text((1 , draw_view_pos + y), item, fill=text_color, font=ImageFont.truetype(font_path, font_size))
+            if (selected_item is not None and selected_item == item):
+                draw.text((LCD_WIDTH - font_size, draw_view_pos + y), "", fill=text_color, font=ImageFont.truetype(FONT_ICON, font_size - 2))
+            draw.text((1, draw_view_pos + y), item, fill=text_color, font=ImageFont.truetype(FONT_TEXT, font_size))
             draw_cursor_pos += 1
 
     def createMenuIcon(self, draw, items):
@@ -168,8 +173,80 @@ class Lcd(object):
                 fnt = "white"
 
             draw.rectangle([draw_cursor_pos * btn_width, btn_height, (draw_cursor_pos + 1) * btn_width, LCD_HEIGHT], fill=bgd, outline=fnt)
-            draw.text((btn_start + draw_cursor_pos * btn_width, 0.79 * LCD_HEIGHT), items[draw_cursor_pos], fill=fnt, font=ImageFont.truetype(font_path2, font_size))
+            draw.text((btn_start + draw_cursor_pos * btn_width, 0.79 * LCD_HEIGHT), items[draw_cursor_pos], fill=fnt, font=ImageFont.truetype(FONT_ICON, font_size))
             draw_cursor_pos += 1
+
+    def loop(self):
+        t = threading.currentThread()
+        if (LCD_MODE == 1 or LCD_MODE == 2):
+            while getattr(t, "do_run", True):
+                if (self.__winch.getState() != State.UNKNOWN):
+                    self.display()
+                #self.enter(get())
+                time.sleep(1)
+        else:
+            # Capture mode for DOC
+            self.display()
+
+            # Stop Screen 003
+            self.enter(ENTER)
+            self.display()
+
+            # Play Screen
+            self.enter(ENTER)
+
+            # Menu Screen 004 & 005
+            self.enter(RIGHT)
+            self.display()
+            self.enter(ENTER)
+            self.display()
+
+            # Manual postition 006 & 007
+            self.enter(RIGHT)
+            self.display()
+            self.enter(ENTER)
+            self.display()
+            self.enter(ENTER)
+
+            # Security distance 008 & 009
+            self.enter(RIGHT)
+            self.enter(RIGHT)
+            self.display()
+            self.enter(ENTER)
+            self.display()
+            self.enter(ENTER)
+
+            # Mode Selector 010 & 011
+            self.enter(RIGHT)
+            self.enter(RIGHT)
+            self.enter(RIGHT)
+            self.display()
+            self.enter(ENTER)
+            self.display()
+            self.enter(RIGHT)
+            self.display()
+            self.enter(ENTER)
+
+            # Mode Velocity Start 012 & 013
+            self.enter(RIGHT)
+            self.enter(RIGHT)
+            self.enter(RIGHT)
+            self.enter(RIGHT)
+            self.display()
+            self.enter(ENTER)
+            self.display()
+            self.enter(ENTER)
+
+            # Mode Velocity Stop 014 & 015
+            self.enter(RIGHT)
+            self.enter(RIGHT)
+            self.enter(RIGHT)
+            self.enter(RIGHT)
+            self.enter(RIGHT)
+            self.display()
+            self.enter(ENTER)
+            self.display()
+            self.enter(ENTER)
 
 
 class ScreenBase(ABC):
@@ -204,14 +281,14 @@ class MainScreen(ScreenBase):
 
         # Speed
         speed_x = 54
-        draw.text((speed_x, 14), "%s" % self._display.speed_value, fill="white", font=ImageFont.truetype(font_path, 35))
-        draw.text((speed_x + 40, 28), self._display.speed_unit, fill="white", font=ImageFont.truetype(font_path, 15))  # Very good
+        draw.text((speed_x, 14), "%s" % self._display.getWinch().getSpeedTarget(), fill="white", font=ImageFont.truetype(FONT_TEXT, 35))
+        draw.text((speed_x + 40, 28), SPEED_UNIT, fill="white", font=ImageFont.truetype(FONT_TEXT, 15))  # Very good
 
         # Distance
         marg = 2
         draw.rectangle([0 + marg, 11, LCD_WIDTH - marg, 14], fill="white", outline="white")
 
-        if (self._display.state != 1):
+        if (self._display.getWinch().getState != State.IDLE):
             self._display.createMenuIcon(draw, self.__ITEMS_START)
         else:
             self._display.createMenuIcon(draw, self.__ITEMS_STOP)
@@ -272,11 +349,11 @@ class ManualPositionScreen(ScreenBase):
         return sys.maxsize
 
     def display(self, draw):
-        draw.text((1 , 1), "Move with Right/Left button.", fill=COLOR_PRIM_FONT, font=ImageFont.truetype(font_path, 12))
+        draw.text((1, 1), "Move with Right/Left button.", fill=COLOR_PRIM_FONT, font=ImageFont.truetype(FONT_TEXT, 12))
 
         y = 0.78 * LCD_HEIGHT
         draw.rectangle([0, y, LCD_WIDTH, LCD_HEIGHT], fill="white", outline="white")
-        draw.text((0, 0.80 * LCD_HEIGHT), "enter to exit.", fill="black", font=ImageFont.truetype(font_path, 12))
+        draw.text((0, 0.80 * LCD_HEIGHT), "enter to exit.", fill="black", font=ImageFont.truetype(FONT_TEXT, 12))
 
     def enter(self, cursor_pos):
         self._display.screen = MenuScreen(self._display)
@@ -365,92 +442,16 @@ class VelocityStopScreen(ScreenBase):
         #  Save to item
         self._display.screen = MenuScreen(self._display)
 
+
 def get():
-    k= click.getchar() #inkey()
-    if k=='\x1b[A':
+    k = click.getchar()
+    if k == '\x1b[A':
         return UP
-    elif k=='\x1b[B':
+    elif k == '\x1b[B':
         return DOWN
-    elif k=='\x1b[C':
+    elif k == '\x1b[C':
         return RIGHT
-    elif k=='\x1b[D':
+    elif k == '\x1b[D':
         return LEFT
     else:
         print("not an arrow key!\n")
-
-def loop():
-    t = threading.currentThread()
-    if (mode == 1 or mode == 2):
-        while getattr(t, "do_run", True):
-            lcd.display()
-            lcd.enter(get())
-            # time.sleep(1)
-    else:
-        lcd.display()
-
-        # Stop Screen 003
-        lcd.enter(ENTER)
-        lcd.display()
-
-        # Play Screen
-        lcd.enter(ENTER)
-
-        # Menu Screen 004 & 005
-        lcd.enter(RIGHT)
-        lcd.display()
-        lcd.enter(ENTER)
-        lcd.display()
-
-        # Manual postition 006 & 007
-        lcd.enter(RIGHT)
-        lcd.display()
-        lcd.enter(ENTER)
-        lcd.display()
-        lcd.enter(ENTER)
-
-        # Security distance 008 & 009
-        lcd.enter(RIGHT)
-        lcd.enter(RIGHT)
-        lcd.display()
-        lcd.enter(ENTER)
-        lcd.display()
-        lcd.enter(ENTER)
-
-        # Mode Selector 010 & 011
-        lcd.enter(RIGHT)
-        lcd.enter(RIGHT)
-        lcd.enter(RIGHT)
-        lcd.display()
-        lcd.enter(ENTER)
-        lcd.display()
-        lcd.enter(RIGHT)
-        lcd.display()
-        lcd.enter(ENTER)
-
-        # Mode Velocity Start 012 & 013
-        lcd.enter(RIGHT)
-        lcd.enter(RIGHT)
-        lcd.enter(RIGHT)
-        lcd.enter(RIGHT)
-        lcd.display()
-        lcd.enter(ENTER)
-        lcd.display()
-        lcd.enter(ENTER)
-
-        # Mode Velocity Stop 014 & 015
-        lcd.enter(RIGHT)
-        lcd.enter(RIGHT)
-        lcd.enter(RIGHT)
-        lcd.enter(RIGHT)
-        lcd.enter(RIGHT)
-        lcd.display()
-        lcd.enter(ENTER)
-        lcd.display()
-        lcd.enter(ENTER)
-
-if (LCD_MODE != 0):
-    lcd = Lcd()
-    lcd.boot()
-    __displayLoop = threading.Thread(target=loop, name="display", args=(), daemon=True)
-    time.sleep(2)
-    __displayLoop.start()
