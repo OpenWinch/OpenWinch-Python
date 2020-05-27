@@ -32,10 +32,10 @@ class State(Enum):
 class Winch(object):
     """ Winch controller class. """
 
+    __controlLoop = None
+    __mode = None
     __state = State.UNKNOWN
     __speed_target = SPEED_INIT
-    # __controlLoop
-    # __log
 
     def __init__(self):
         """ Constructor of Winch class. """
@@ -169,7 +169,7 @@ class Winch(object):
         """ Get Target speed of winch."""
         return self.__speed_target
 
-    def getState(self):
+    def getState(self) -> State:
         """ Get actual state of winch. """
         return self.__state
 
