@@ -4,7 +4,6 @@
 # OpneWinchPy : a library for controlling the Raspberry Pi's Winch
 # Copyright (c) 2020 Mickael Gaillard <mick.gaillard@gmail.com>
 
-from luma.core.interface.serial import i2c, spi
 from luma.core.render import canvas
 from luma.oled.device import sh1106
 from luma.emulator.device import pygame, capture
@@ -17,8 +16,7 @@ import click
 import threading
 
 from openwinch.hardware_config import (LCD_HEIGHT, LCD_WIDTH, LCD_ADDR)
-from openwinch.display_config import (DOWN,
-                                      UP,
+from openwinch.display_config import (UP,
                                       LEFT,
                                       RIGHT,
                                       ENTER,
@@ -28,7 +26,7 @@ from openwinch.display_config import (DOWN,
                                       COLOR_PRIM_BACK,
                                       COLOR_SELC_FONT,
                                       COLOR_SELC_BACK,
-                                      mode,
+                                      LCD_MODE,
                                       font_path,
                                       font_path2,
                                       font_path3)
@@ -53,12 +51,13 @@ class Lcd(object):
         return self.cursor_pos
 
     def __init__(self):
-        if (mode == 1):
+        if (LCD_MODE == 1):
+            from luma.core.interface.serial import i2c
             serial_interface = i2c(port=1, address=LCD_ADDR)
             self.__device = sh1106(serial_interface, width=LCD_WIDTH, height=LCD_HEIGHT, rotate=0)
-        elif (mode == 2):
+        elif (LCD_MODE == 2):
             self.__device = pygame(width=LCD_WIDTH, height=LCD_HEIGHT, rotate=0, mode='1', transform='scale2x', scale=2, frame_rate=60)
-        elif (mode == 3):
+        elif (LCD_MODE == 3):
             self.__device = capture(width=LCD_WIDTH, height=LCD_HEIGHT, rotate=0, mode='1', transform='scale2x', scale=2, file_template="docs/images/screens/OpenWinch_{0:06}.png")
 
         self.__device.show()
@@ -135,7 +134,7 @@ class Lcd(object):
         font_size = 12
         draw_cursor_pos = 0
         draw_view_pos = 0
-        
+
         cursor_limit_screen = (LCD_HEIGHT / font_size)-1
         if (self.cursor_pos > cursor_limit_screen):
             draw_view_pos = -((self.cursor_pos - cursor_limit_screen) * font_size)
@@ -167,7 +166,7 @@ class Lcd(object):
             if (draw_cursor_pos == self.cursor_pos):
                 bgd = "black"
                 fnt = "white"
-            
+
             draw.rectangle([draw_cursor_pos * btn_width, btn_height, (draw_cursor_pos + 1) * btn_width, LCD_HEIGHT], fill=bgd, outline=fnt)
             draw.text((btn_start + draw_cursor_pos * btn_width, 0.79 * LCD_HEIGHT), items[draw_cursor_pos], fill=fnt, font=ImageFont.truetype(font_path2, font_size))
             draw_cursor_pos += 1
@@ -239,7 +238,7 @@ class MenuScreen(ScreenBase):
         "Velocity Stop",
     ]
     # __ITEMS = ["", "", ""]
-    
+
     def countItems(self) -> int:
         return len(self.__ITEMS_MENU)
 
@@ -267,7 +266,7 @@ class ManualPositionScreen(ScreenBase):
     def __init__(self, display):
         super(ManualPositionScreen, self).__init__(display)
         # Load from item
-        self._display.cursor_pos = sys.maxsize/2
+        self._display.cursor_pos = sys.maxsize / 2
 
     def countItems(self) -> int:
         return sys.maxsize
@@ -294,10 +293,10 @@ class SecurityDistanceScreen(ScreenBase):
 
     def countItems(self) -> int:
         return 255
-    
+
     def display(self, draw):
         self._display.createValue(draw, self.TITLE, self._display.getPos())
-    
+
     def enter(self, cursor_pos):
         #  Save to item
         self._display.screen = MenuScreen(self._display)
@@ -318,10 +317,10 @@ class ModeSelectorScreen(ScreenBase):
 
     def countItems(self) -> int:
         return len(self.__ITEMS)
-    
+
     def display(self, draw):
         self._display.createMenuScroll(draw, self.__ITEMS, "OneWay")
-    
+
     def enter(self, cursor_pos):
         #  Save to item
         self._display.screen = MenuScreen(self._display)
@@ -338,10 +337,10 @@ class VelocityStartScreen(ScreenBase):
 
     def countItems(self) -> int:
         return 255
-    
+
     def display(self, draw):
         self._display.createValue(draw, self.TITLE, self._display.getPos())
-    
+
     def enter(self, cursor_pos):
         #  Save to item
         self._display.screen = MenuScreen(self._display)
@@ -358,10 +357,10 @@ class VelocityStopScreen(ScreenBase):
 
     def countItems(self) -> int:
         return 255
-    
+
     def display(self, draw):
         self._display.createValue(draw, self.TITLE, self._display.getPos())
-    
+
     def enter(self, cursor_pos):
         #  Save to item
         self._display.screen = MenuScreen(self._display)
@@ -449,7 +448,7 @@ def loop():
         lcd.display()
         lcd.enter(ENTER)
 
-if (mode != 0):
+if (LCD_MODE != 0):
     lcd = Lcd()
     lcd.boot()
     __displayLoop = threading.Thread(target=loop, name="display", args=(), daemon=True)

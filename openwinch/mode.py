@@ -59,7 +59,7 @@ class ModeEngine(ABC):
 
             # STARTING or RUNNING
             if (self._isRunState()):
-                self.__starting()  
+                self.__starting()
 
             # STOP
             if (self._isStopState()):
@@ -76,7 +76,7 @@ class ModeEngine(ABC):
 
             # CPU idle
             time.sleep(LOOP_DELAY)
-        
+
         logger.debug("Stopping Control Loop.")
 
     def _isRunState(self) -> bool:
@@ -166,7 +166,7 @@ class TwoWayMode(ModeEngine):
         if (self._isRunState() and (self._board.getRotationFromInit() >= self._board.getRotationFromExtend() - self.__security)):  # Limit Position END
             self._board.setReverse(False)
             self.__current_duration = self.__standby_duration
-        
+
         if (self.__current_duration >= 0):
             self.__current_duration -= 1
             self._speed_current = 0

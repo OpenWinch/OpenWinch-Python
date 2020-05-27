@@ -20,10 +20,10 @@ def loadClass(fullclass) -> object:
         try:
             class_ = getattr(module, class_name)
             instance = class_()
-        except AttributeError:
-            logger.error('Class does not exist')
-    except ImportError:
-        logger.error('Module does not exist')
+        except AttributeError as ex:
+            logger.error('Class does not exist : %s' % ex)
+    except ImportError as ex:
+        logger.error('Module does not exist : %s' % ex)
     return instance
 
 def rotate2distance(rotate) -> float:
