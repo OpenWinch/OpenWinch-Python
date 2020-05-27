@@ -23,8 +23,8 @@ IN_MOVE_RIGHT = 23
 OUT_REVERSE = 17
 
 # Speed Mode
-OUT_SPD_LO = 24
-OUT_SPD_HI = 25
+OUT_SPD = 24
+OUT_PWR = 25
 
 # Throttle
 OUT_THROTTLE = 18

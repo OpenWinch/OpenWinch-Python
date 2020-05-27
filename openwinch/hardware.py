@@ -23,9 +23,14 @@ class Board(ABC):
 
     _reverse = False
     _speed_mode = SpeedMode.LOW
+    _rotation_from_init = 0
 
     @abstractmethod
     def initialize(self):
+        self._rotation_from_init = 0
+
+    @abstractmethod
+    def emergency(self):
         pass
 
     @abstractmethod
@@ -36,6 +41,7 @@ class Board(ABC):
     def getThrottleValue(self):
         pass
 
+    @abstractmethod
     def setReverse(self, enable):
         self._reverse = enable
         logger.debug("IO : Change Reverse mode to : %s" % self.isReverse())
@@ -43,24 +49,49 @@ class Board(ABC):
     def isReverse(self):
         return self._reverse
 
+    @abstractmethod
     def setSpeedMode(self, speed_mode):
         self._speed_mode = speed_mode
         logger.debug("IO : Change Speed mode to %s" % self.getSpeedMode())
 
     def getSpeedMode(self):
         return self._speed_mode
+    
+    def getRotationFromInit(self):
+        return self._rotation_from_init
+    
+    def getRotationFromExtend(self):
+        return 60
 
 
 class Emulator(Board):
     __value = 0
+    __init = False
 
     def initialize(self):
+        super().initialize()
+        self.__init = True
         logger.info("IO : Emulator Initialized !")
 
+    def emergency(self):
+        self.__init = False
+        logger.info("IO : Emulator Emergency mode !")
+
     def setThrottleValue(self, value):
+        if (self.__value > 0):
+            self._rotation_from_init -= 1
+        elif (self.__init):
+            self._rotation_from_init += 1
+
         if (self.__value != value):
             self.__value = value
             logger.debug("IO : Throttle to %s" % self.__value)
 
     def getThrottleValue(self):
         logger.debug("IO : Throttle to %s" % self.__value)
+    
+    def setSpeedMode(self, speed_mode):
+        super().setSpeedMode(speed_mode)
+    
+    def setReverse(self, enable):
+        super().setReverse(enable)

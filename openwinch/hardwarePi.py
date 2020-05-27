@@ -9,8 +9,8 @@ from openwinch.hardware_config import (IN_REVERSE,
                                        OUT_REVERSE,
                                        IN_MOVE_LEFT,
                                        IN_MOVE_RIGHT,
-                                       OUT_SPD_LO,
-                                       OUT_SPD_HI,
+                                       OUT_SPD,
+                                       OUT_PWR,
                                        OUT_THROTTLE)
 from openwinch.logger import logger
 
@@ -22,6 +22,10 @@ class RaspberryPi(Board):
     def __init__(self):
         logger.debug("IO : Initialize Hardware...")
 
+        # Power
+        self.__power_cmd = OutputDevice(OUT_PWR)
+        self.__power_cmd.off()
+
         # Reverse
         self.__reverse_btn = Button(IN_REVERSE)
         self.__reverse_cmd = OutputDevice(OUT_REVERSE)
@@ -31,8 +35,7 @@ class RaspberryPi(Board):
         self.__move_right_btn = Button(IN_MOVE_RIGHT)
 
         # Speed mode (Lo, Medium, Hi)
-        self.__speedLo_cmd = OutputDevice(OUT_SPD_LO)
-        self.__speedHi_cmd = OutputDevice(OUT_SPD_HI)
+        self.__speed_cmd = OutputDevice(OUT_SPD)
 
         # Throlle
         self.__throttle_cmd = PWMOutputDevice(OUT_THROTTLE)
@@ -42,17 +45,6 @@ class RaspberryPi(Board):
         self.__reverse_btn.when_held = self.__pressedInit
         self.__move_left_btn = self.__pressedLeft
         self.__move_right_btn = self.__pressedRight
-
-        self.initialize()
-
-    def initialize(self):
-        """ Initialize """
-        self.setReverse(False)
-        self.setSpeedMode(SpeedMode.LOW)
-        self.__throttle_cmd.on()
-        self.__throttle_cmd.value = 0
-
-        logger.info("IO : Hardware Initialized !")
 
     def __pressedRight(self):
         logger.debug("IO : Move Right pressed !")
@@ -68,6 +60,21 @@ class RaspberryPi(Board):
         logger.debug("IO : Reverse pressed !")
         self.setReverse(not self.isReverse())
 
+    def initialize(self):
+        """ Initialize """
+        super().initialize()
+        self.setReverse(False)
+        self.setSpeedMode(SpeedMode.LOW)
+        self.__throttle_cmd.value = 0
+        self.__throttle_cmd.on()
+
+        self.__power_cmd.on()
+        logger.info("IO : Hardware Initialized !")
+
+    def emergency(self):
+        logger.debug("IO : Shutdown power !")
+        self.__power_cmd.off()
+
     def setThrottleValue(self, value):
         if (self.__throttle_cmd.value != value):
             logger.debug("IO : Throttle to %s" % value)
@@ -79,14 +86,11 @@ class RaspberryPi(Board):
     def setSpeedMode(self, speed_mode):
         super().setSpeedMode(speed_mode)
         if (self._speed_mode == SpeedMode.LOW):
-            self.__speedLo_cmd.on()
-            self.__speedHi_cmd.off()
-        elif (self._speed_mode == SpeedMode.MEDIUM):
-            self.__speedLo_cmd.off()
-            self.__speedHi_cmd.off()
+            self.__speed_cmd.off()
+        # elif (self._speed_mode == SpeedMode.MEDIUM):
+        #     self.__speed_cmd.off()
         elif (self._speed_mode == SpeedMode.HIGH):
-            self.__speedLo_cmd.off()
-            self.__speedHi_cmd.on()
+            self.__speed_cmd.on()
 
     def setReverse(self, enable):
         super().setReverse(enable)
