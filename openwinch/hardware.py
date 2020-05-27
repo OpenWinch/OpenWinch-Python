@@ -5,6 +5,7 @@
 # Copyright (c) 2020 Mickael Gaillard <mick.gaillard@gmail.com>
 
 from openwinch.logger import logger
+from openwinch.display import Lcd
 
 from abc import ABC, abstractmethod
 from enum import Enum, unique
