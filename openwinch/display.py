@@ -5,12 +5,10 @@
 # Copyright (c) 2020 Mickael Gaillard <mick.gaillard@gmail.com>
 
 from luma.core.render import canvas
-from luma.oled.device import sh1106
-from luma.emulator.device import pygame, capture
+from luma.core.sprite_system import framerate_regulator
 from PIL import ImageFont
 
 from abc import ABC, abstractmethod
-import time
 import sys
 import click
 import threading
@@ -31,8 +29,9 @@ from openwinch.display_config import (UP,
                                       FONT_TEXT,
                                       FONT_ICON,
                                       FONT_LOGO)
-from openwinch.hardware_config import (LCD_HEIGHT, LCD_WIDTH, LCD_ADDR)
+from openwinch.hardware_config import (LCD_HEIGHT, LCD_WIDTH, LCD_ADDR, LCD_FPS)
 from openwinch.version import __version__
+
 
 class Lcd(object):
     cursor_pos = 1
@@ -47,16 +46,20 @@ class Lcd(object):
     def __init__(self, winch):
         if (LCD_MODE == 1):
             from luma.core.interface.serial import i2c
+            from luma.oled.device import sh1106
             serial_interface = i2c(port=1, address=LCD_ADDR)
             self.__device = sh1106(serial_interface, width=LCD_WIDTH, height=LCD_HEIGHT, rotate=0)
         elif (LCD_MODE == 2):
+            from luma.emulator.device import pygame
             self.__device = pygame(width=LCD_WIDTH, height=LCD_HEIGHT, rotate=0, mode='1', transform='scale2x', scale=2, frame_rate=60)
         elif (LCD_MODE == 3):
+            from luma.emulator.device import capture
             self.__device = capture(width=LCD_WIDTH, height=LCD_HEIGHT, rotate=0, mode='1', transform='scale2x', scale=2, file_template="docs/images/screens/OpenWinch_{0:06}.png")
 
         self.__winch = winch
         self.__device.show()
         self.__font = ImageFont.truetype(FONT_TEXT, 8)
+        self.__regulator = framerate_regulator(fps=LCD_FPS)
 
         self.screen = MainScreen(self)
 
@@ -76,8 +79,8 @@ class Lcd(object):
             draw.text((x, y), name, fill=COLOR_PRIM_FONT, font=ImageFont.truetype(FONT_LOGO, font_size))
             draw.text((xver, yver), __version__, fill=COLOR_PRIM_FONT, font=ImageFont.truetype(FONT_TEXT, 8))
 
-        self.__displayLoop = threading.Thread(target=self.loop, name="display", args=(), daemon=True)
-        self.__displayLoop.start()
+        self.__display__draw_Loop = threading.Thread(target=self.__draw_loop, name="display", args=(), daemon=True)
+        self.__display__draw_Loop.start()
 
     def display(self):
         with canvas(self.__device) as draw:
@@ -106,20 +109,21 @@ class Lcd(object):
 
     def statusBar(self, draw):
         # Battery
-        _battery = self.__winch.getBattery()
+        battery_value = self.__winch.getBattery()
+
         battery_symbol = ""
-        if (_battery > 87.5):
+        if (battery_value > 87.5):
             battery_symbol = ""
-        elif (_battery > 62.5):
+        elif (battery_value > 62.5):
             battery_symbol = ""
-        elif (_battery > 37.5):
+        elif (battery_value > 37.5):
             battery_symbol = ""
-        elif (_battery > 12.5):
+        elif (battery_value > 12.5):
             battery_symbol = ""
 
         battery_x = 2
         draw.text((battery_x, 0), battery_symbol, fill=COLOR_PRIM_FONT, font=ImageFont.truetype(FONT_ICON, 8))
-        draw.text((battery_x + 15, 1), "%s%%" % _battery, fill=COLOR_PRIM_FONT, font=self.__font)
+        draw.text((battery_x + 15, 1), "%s%%" % battery_value, fill=COLOR_PRIM_FONT, font=self.__font)
 
         # Wifi
         wifi_x = 105
@@ -176,77 +180,80 @@ class Lcd(object):
             draw.text((btn_start + draw_cursor_pos * btn_width, 0.79 * LCD_HEIGHT), items[draw_cursor_pos], fill=fnt, font=ImageFont.truetype(FONT_ICON, font_size))
             draw_cursor_pos += 1
 
-    def loop(self):
+    def __draw_loop(self):
         t = threading.currentThread()
         if (LCD_MODE == 1 or LCD_MODE == 2):
             while getattr(t, "do_run", True):
-                if (self.__winch.getState() != State.UNKNOWN):
-                    self.display()
-                #self.enter(get())
-                time.sleep(1)
+                with self.__regulator:
+                    if (self.__winch.getState() != State.UNKNOWN):
+                        self.display()
+                    #self.enter(get()) # move on specific thread
         else:
-            # Capture mode for DOC
-            self.display()
+            self.extractScreen
 
-            # Stop Screen 003
-            self.enter(ENTER)
-            self.display()
+    def extractScreen(self):
+        # Capture mode for DOC
+        self.display()
 
-            # Play Screen
-            self.enter(ENTER)
+        # Stop Screen 003
+        self.enter(ENTER)
+        self.display()
 
-            # Menu Screen 004 & 005
-            self.enter(RIGHT)
-            self.display()
-            self.enter(ENTER)
-            self.display()
+        # Play Screen
+        self.enter(ENTER)
 
-            # Manual postition 006 & 007
-            self.enter(RIGHT)
-            self.display()
-            self.enter(ENTER)
-            self.display()
-            self.enter(ENTER)
+        # Menu Screen 004 & 005
+        self.enter(RIGHT)
+        self.display()
+        self.enter(ENTER)
+        self.display()
 
-            # Security distance 008 & 009
-            self.enter(RIGHT)
-            self.enter(RIGHT)
-            self.display()
-            self.enter(ENTER)
-            self.display()
-            self.enter(ENTER)
+        # Manual postition 006 & 007
+        self.enter(RIGHT)
+        self.display()
+        self.enter(ENTER)
+        self.display()
+        self.enter(ENTER)
 
-            # Mode Selector 010 & 011
-            self.enter(RIGHT)
-            self.enter(RIGHT)
-            self.enter(RIGHT)
-            self.display()
-            self.enter(ENTER)
-            self.display()
-            self.enter(RIGHT)
-            self.display()
-            self.enter(ENTER)
+        # Security distance 008 & 009
+        self.enter(RIGHT)
+        self.enter(RIGHT)
+        self.display()
+        self.enter(ENTER)
+        self.display()
+        self.enter(ENTER)
 
-            # Mode Velocity Start 012 & 013
-            self.enter(RIGHT)
-            self.enter(RIGHT)
-            self.enter(RIGHT)
-            self.enter(RIGHT)
-            self.display()
-            self.enter(ENTER)
-            self.display()
-            self.enter(ENTER)
+        # Mode Selector 010 & 011
+        self.enter(RIGHT)
+        self.enter(RIGHT)
+        self.enter(RIGHT)
+        self.display()
+        self.enter(ENTER)
+        self.display()
+        self.enter(RIGHT)
+        self.display()
+        self.enter(ENTER)
 
-            # Mode Velocity Stop 014 & 015
-            self.enter(RIGHT)
-            self.enter(RIGHT)
-            self.enter(RIGHT)
-            self.enter(RIGHT)
-            self.enter(RIGHT)
-            self.display()
-            self.enter(ENTER)
-            self.display()
-            self.enter(ENTER)
+        # Mode Velocity Start 012 & 013
+        self.enter(RIGHT)
+        self.enter(RIGHT)
+        self.enter(RIGHT)
+        self.enter(RIGHT)
+        self.display()
+        self.enter(ENTER)
+        self.display()
+        self.enter(ENTER)
+
+        # Mode Velocity Stop 014 & 015
+        self.enter(RIGHT)
+        self.enter(RIGHT)
+        self.enter(RIGHT)
+        self.enter(RIGHT)
+        self.enter(RIGHT)
+        self.display()
+        self.enter(ENTER)
+        self.display()
+        self.enter(ENTER)
 
 
 class ScreenBase(ABC):
@@ -288,7 +295,7 @@ class MainScreen(ScreenBase):
         marg = 2
         draw.rectangle([0 + marg, 11, LCD_WIDTH - marg, 14], fill="white", outline="white")
 
-        if (self._display.getWinch().getState != State.IDLE):
+        if (self._display.getWinch().getState() != State.IDLE):
             self._display.createMenuIcon(draw, self.__ITEMS_START)
         else:
             self._display.createMenuIcon(draw, self.__ITEMS_STOP)

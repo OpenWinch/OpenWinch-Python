@@ -37,7 +37,6 @@ class Board(ABC):
     @abstractmethod
     def initialize(self):
         self._rotation_from_init = 0
-        self._lcd.booted()
 
     @abstractmethod
     def emergency(self):
