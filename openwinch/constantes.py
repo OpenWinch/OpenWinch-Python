@@ -9,6 +9,8 @@ MOTOR_MAX = 38
 
 # Diameter in meter.
 WINCH_DIAM = 0.2
+# Distance in meter.
+WINCH_DISTANCE = 200
 
 # Speed
 SPEED_MAX = 38
@@ -19,6 +21,3 @@ SPEED_UNIT = 'Km/h'
 # Loop delay
 LOOP_DELAY = 0.01
 #LOOP_DELAY = 0.1
-
-# Diameter in meter.
-WINCH_DIAM = 0.2

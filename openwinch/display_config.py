@@ -4,12 +4,6 @@
 # OpneWinchPy : a library for controlling the Raspberry Pi's Winch
 # Copyright (c) 2020 Mickael Gaillard <mick.gaillard@gmail.com>
 
-UP = 1
-RIGHT = 2
-DOWN = 3
-LEFT = 4
-ENTER = DOWN
-
 ITEM_BACK = "< BACK"
 
 COLOR_PRIM_FONT = "white"

@@ -10,17 +10,12 @@ from PIL import ImageFont
 
 from abc import ABC, abstractmethod
 import sys
-import click
 import threading
 
 from openwinch.controller import State
-from openwinch.constantes import SPEED_UNIT
-from openwinch.display_config import (UP,
-                                      LEFT,
-                                      RIGHT,
-                                      ENTER,
-                                      DOWN,
-                                      ITEM_BACK,
+from openwinch.constantes import SPEED_UNIT, WINCH_DISTANCE
+from openwinch.input import InputType
+from openwinch.display_config import (ITEM_BACK,
                                       COLOR_PRIM_FONT,
                                       COLOR_PRIM_BACK,
                                       COLOR_SELC_FONT,
@@ -34,6 +29,7 @@ from openwinch.version import __version__
 
 
 class Lcd(object):
+
     cursor_pos = 1
     view_pos = 0
 
@@ -66,7 +62,7 @@ class Lcd(object):
     def getWinch(self):
         return self.__winch
 
-    def boot(self):
+    def __drawBoot(self):
         with canvas(self.__device) as draw:
             font_size = 20
             name = "OpenWinch"
@@ -79,6 +75,8 @@ class Lcd(object):
             draw.text((x, y), name, fill=COLOR_PRIM_FONT, font=ImageFont.truetype(FONT_LOGO, font_size))
             draw.text((xver, yver), __version__, fill=COLOR_PRIM_FONT, font=ImageFont.truetype(FONT_TEXT, 8))
 
+    def boot(self):
+        self.__drawBoot()
         self.__display__draw_Loop = threading.Thread(target=self.__draw_loop, name="display", args=(), daemon=True)
         self.__display__draw_Loop.start()
 
@@ -91,11 +89,11 @@ class Lcd(object):
 
     def enter(self, key):
         # Directional Common
-        if (RIGHT == key):
+        if (InputType.RIGHT == key):
             self.cursor_pos += 1
-        elif (LEFT == key):
+        elif (InputType.LEFT == key):
             self.cursor_pos -= 1
-        elif (DOWN == key):
+        elif (InputType.ENTER == key):
             self.screen.enter(self.cursor_pos)
 
         # out bound fix
@@ -187,6 +185,8 @@ class Lcd(object):
                 with self.__regulator:
                     if (self.__winch.getState() != State.UNKNOWN):
                         self.display()
+                    else:
+                        self.__drawBoot()
                     #self.enter(get()) # move on specific thread
         else:
             self.extractScreen
@@ -277,13 +277,19 @@ class ScreenBase(ABC):
 
 
 class MainScreen(ScreenBase):
-    __ITEMS_START = ["", "", ""]
-    __ITEMS_STOP = ["", "", ""]
+    __ITEMS_IDLE = ["", "", ""]
+    __ITEMS_RUNNING = ["", "", ""]
+    __ITEMS_ERROR = ["", "", ""]
+    __count = 1
 
     def countItems(self) -> int:
-        return len(self.__ITEMS_START)
+        return len(self.__ITEMS_IDLE)
 
     def display(self, draw):
+        self.__count += 2
+        self.__inver = True
+
+        # Status bar
         self._display.statusBar(draw)
 
         # Speed
@@ -292,20 +298,36 @@ class MainScreen(ScreenBase):
         draw.text((speed_x + 40, 28), SPEED_UNIT, fill="white", font=ImageFont.truetype(FONT_TEXT, 15))  # Very good
 
         # Distance
-        marg = 2
-        draw.rectangle([0 + marg, 11, LCD_WIDTH - marg, 14], fill="white", outline="white")
+        marg = 4
+        percent = 1 / WINCH_DISTANCE * self._display.getWinch().getDistance()
+        draw.rectangle([0 + marg, 11, ((LCD_WIDTH - marg) * percent), 14], fill="white", outline="white")
 
-        if (self._display.getWinch().getState() != State.IDLE):
-            self._display.createMenuIcon(draw, self.__ITEMS_START)
+        current_state = self._display.getWinch().getState()
+        if (current_state == State.IDLE or current_state == State.STOP):
+            self._display.createMenuIcon(draw, self.__ITEMS_IDLE)
+        elif (current_state == State.RUNNING or current_state == State.START):
+            self._display.createMenuIcon(draw, self.__ITEMS_RUNNING)
+            self.__animateDistance(draw)
         else:
-            self._display.createMenuIcon(draw, self.__ITEMS_STOP)
+            self._display.createMenuIcon(draw, self.__ITEMS_ERROR)
+
+    def __animateDistance(self, draw):
+        cursor_size = 2
+        stepper = 10
+        if (self.__count >= stepper):
+            self.__count = 1
+
+        if(self.__count % stepper != 0):
+            for i in range(0, int(LCD_WIDTH / stepper), 1):
+                draw.rectangle([self.__count + (i * stepper), 11, (self.__count + (i * stepper)) + cursor_size, 14], fill="black", outline="black")
 
     def enter(self, cursor_pos):
+        current_state = self._display.getWinch().getState()
         if (0 == cursor_pos):
-            if (self._display.state == 0):
-                self._display.state = 1
+            if (current_state == State.IDLE or current_state == State.STOP):
+                self._display.getWinch().start()
             else:
-                self._display.state = 0
+                self._display.getWinch().stop()
         if (1 == cursor_pos):
             self._display.screen = MenuScreen(self._display)
         if (2 == cursor_pos):
@@ -448,17 +470,3 @@ class VelocityStopScreen(ScreenBase):
     def enter(self, cursor_pos):
         #  Save to item
         self._display.screen = MenuScreen(self._display)
-
-
-def get():
-    k = click.getchar()
-    if k == '\x1b[A':
-        return UP
-    elif k == '\x1b[B':
-        return DOWN
-    elif k == '\x1b[C':
-        return RIGHT
-    elif k == '\x1b[D':
-        return LEFT
-    else:
-        print("not an arrow key!\n")

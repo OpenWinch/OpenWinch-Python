@@ -91,7 +91,7 @@ class Winch(object):
 
         logger.debug("Initialize Winch hardware...")
         self.__changeState(State.INIT)
-    
+
     def initialized(self):
         """ Call when hardware stop completely. """
 
@@ -181,6 +181,9 @@ class Winch(object):
 
     def getRemote(self):
         return 15
+
+    def getDistance(self):
+        return self.__mode.getDistance()
 
     def speedUp(self, value=1):
         """ Up speed.

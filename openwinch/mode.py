@@ -7,6 +7,7 @@
 from openwinch.logger import logger
 from openwinch.constantes import (MOTOR_MAX, LOOP_DELAY)
 import openwinch.controller
+from openwinch.utils import rotate2distance
 
 from enum import Enum, unique
 from abc import ABC, abstractmethod
@@ -141,6 +142,9 @@ class ModeEngine(ABC):
     def setThrottleValue(self):
         value = self.__speed_ratio * self._speed_current
         self._board.setThrottleValue(value)
+
+    def getDistance(self):
+        return rotate2distance(self._board.getRotationFromInit())
 
 
 class OneWayMode(ModeEngine):

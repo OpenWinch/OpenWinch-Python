@@ -8,6 +8,7 @@ from openwinch.controller import Winch
 from openwinch.display_config import LCD_MODE
 from openwinch.display import Lcd
 from openwinch.logger import logger
+from openwinch.keyboard import Keyboard
 
 from abc import ABC, abstractmethod
 from enum import Enum, unique
@@ -24,6 +25,8 @@ class SpeedMode(Enum):
 class Board(ABC):
 
     _winch = None
+    _lcd = None
+    _input = None
     _reverse = False
     _speed_mode = SpeedMode.LOW
     _rotation_from_init = 0
@@ -33,6 +36,7 @@ class Board(ABC):
         if (LCD_MODE != 0):
             self._lcd = Lcd(self._winch)
             self._lcd.boot()
+            self._input = Keyboard(self._winch, self._lcd)
 
     @abstractmethod
     def initialize(self):
