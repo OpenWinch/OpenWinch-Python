@@ -1,0 +1,41 @@
+@startuml
+
+title Diag states - OpenWinch
+
+[*] --> UNKNOWN
+UNKNOWN: When system power up
+UNKNOWN --> BOOTED
+
+BOOTED: When system is booted
+BOOTED: Display is enable and all function available
+BOOTED --> INIT : initialize()
+
+INIT: Initialize system (sensors & logic & actors)
+INIT: Initialize count rotation
+INIT --> IDLE : initialized()
+
+IDLE: Power motor is Up
+IDLE --> START : start()
+IDLE --> ERROR : emergency()
+
+START: Motor accelarate
+note right of START: Transition state
+START --> RUNNING : started()
+START --> STOP : stop()
+START --> ERROR: emergency()
+
+RUNNING: Motor stabilize speed
+RUNNING --> STOP : stop()
+RUNNING --> ERROR: emergency()
+
+STOP: Motor is brake
+note right of STOP: Transition state
+STOP --> IDLE : stopped()
+STOP --> START : start()
+STOP --> ERROR: emergency()
+
+ERROR: Power motor is Down
+ERROR -up-> INIT : initialize()
+ERROR --> [*]
+
+@enduml

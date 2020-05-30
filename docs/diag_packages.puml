@@ -1,0 +1,90 @@
+@startuml
+
+skinparam package {
+    BackgroundColor White
+    ArrowColor Grey
+    BorderColor Black
+}
+skinparam packageStyle frame
+title packages no name
+package openwinch {
+}
+package openwinch.singleton {
+}
+package openwinch.__main__ {
+}
+package openwinch.controller {
+}
+package openwinch.config {
+}
+package openwinch.hardwarePi {
+}
+package openwinch.display_config {
+}
+package openwinch.version {
+}
+package openwinch.keyboard {
+}
+package openwinch.utils {
+}
+package openwinch.display {
+}
+package openwinch.hardware {
+}
+package openwinch.hardware_config {
+}
+package openwinch.mode {
+}
+package openwinch.constantes {
+}
+package openwinch.web_main {
+}
+package openwinch.logger {
+}
+package openwinch.web_extra {
+}
+openwinch.config +-- openwinch
+openwinch.constantes +-- openwinch
+openwinch.controller +-- openwinch
+openwinch.logger +-- openwinch
+openwinch.mode +-- openwinch
+openwinch.singleton +-- openwinch
+openwinch.version +-- openwinch
+openwinch.web_extra +-- openwinch
+openwinch.web_main +-- openwinch
+openwinch.controller +-- openwinch.singleton
+openwinch.web_extra +-- openwinch.__main__
+openwinch.web_main +-- openwinch.__main__
+openwinch.version +-- openwinch.controller
+openwinch.mode +-- openwinch.controller
+openwinch.logger +-- openwinch.controller
+openwinch.utils +-- openwinch.controller
+openwinch.constantes +-- openwinch.controller
+openwinch.config +-- openwinch.controller
+openwinch.controller +-- openwinch.hardwarePi
+openwinch.hardware +-- openwinch.hardwarePi
+openwinch.hardware_config +-- openwinch.hardwarePi
+openwinch.logger +-- openwinch.hardwarePi
+openwinch.display_config +-- openwinch.keyboard
+openwinch.constantes +-- openwinch.utils
+openwinch.logger +-- openwinch.utils
+openwinch.controller +-- openwinch.display
+openwinch.constantes +-- openwinch.display
+openwinch.display_config +-- openwinch.display
+openwinch.hardware_config +-- openwinch.display
+openwinch.version +-- openwinch.display
+openwinch.controller +-- openwinch.hardware
+openwinch.display_config +-- openwinch.hardware
+openwinch.display +-- openwinch.hardware
+openwinch.logger +-- openwinch.hardware
+openwinch.controller +-- openwinch.mode
+openwinch.logger +-- openwinch.mode
+openwinch.constantes +-- openwinch.mode
+openwinch.utils +-- openwinch.mode
+openwinch.constantes +-- openwinch.web_main
+openwinch.controller +-- openwinch.web_main
+openwinch.singleton +-- openwinch.web_main
+openwinch.constantes +-- openwinch.web_extra
+openwinch.singleton +-- openwinch.web_extra
+
+@enduml
