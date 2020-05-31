@@ -5,7 +5,7 @@
 # Copyright (c) 2020 Mickael Gaillard <mick.gaillard@gmail.com>
 
 from openwinch.version import __version__
-from openwinch.mode import (modeFactory, getMode, Mode)
+from openwinch.mode import (ModeFactory, ModeType)
 from openwinch.logger import logger
 from openwinch.utils import loadClass
 from openwinch.constantes import (SPEED_INIT, SPEED_MAX, SPEED_MIN)
@@ -70,7 +70,7 @@ class Winch(object):
         logger.info("Board : %s" % type(board).__name__)
 
         logger.debug("Mode config : %s" % config.MODE)
-        self.__mode = modeFactory(self, board, config.MODE)
+        self.__mode = ModeFactory.modeFactory(self, board, config.MODE)
         logger.info("Mode : %s" % self.getMode())
 
     def __initControlLoop(self):
@@ -163,9 +163,9 @@ class Winch(object):
         logger.debug("Switch state : %s", state)
         self.__state = state
 
-    def getMode(self) -> Mode:
+    def getMode(self) -> ModeType:
         """ """
-        return getMode(self.__mode)
+        return ModeFactory.getMode(self.__mode)
 
     def getSpeedTarget(self):
         """ Get Target speed of winch."""

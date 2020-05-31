@@ -17,31 +17,112 @@ import time
 
 
 @unique
-class Mode(Enum):
+class ModeType(Enum):
     """ Mode of Winch. """
     OneWay = 1
     TwoWay = 2
     Infinity = 3
 
     def list() -> dict:
-        return list(Mode)
+        return list(ModeType)
 
 
 class ModeEngine(ABC):
+
+    __security_begin = 20
+    __speed_ratio = 1
+    __velocity_start = 1
+    __velocity_stop = 3
+
     _board = None
     _winch = None
     _speed_current = 0
-    _velocity_start = 1
-    _velocity_stop = 3
-    __speed_ratio = 1
 
     def __init__(self, winch, board):
         self._winch = winch
         self._board = board
         self.__speed_ratio = 1 / MOTOR_MAX
 
+    def __initialize(self):
+        logger.debug("Initialize mode.")
+        self._speed_current = 0
+        self._board.initialize()
+        self._winch.initialized()
+
+    def __starting(self):
+        # Increment speed
+        if (self._speed_current < self._winch.getSpeedTarget()):
+            self._speed_current += self.__velocity_start
+
+            if (self._speed_current >= self._winch.getSpeedTarget()):
+                self._winch.started()
+
+        # Decrement speed
+        if (self._speed_current > self._winch.getSpeedTarget()):
+            vel_stop = self.__velocity_stop
+            diff_stop = self._speed_current - self._winch.getSpeedTarget()
+
+            if (vel_stop > diff_stop):
+                vel_stop = diff_stop
+
+            if (self._speed_current > vel_stop):
+                self._speed_current -= vel_stop
+            else:
+                self._speed_current = 0
+
+    def __stopping(self):
+        if (self._speed_current > 0):
+            vel_stop = self.__velocity_stop
+            diff_stop = self._speed_current - 0
+
+            if (vel_stop > diff_stop):
+                vel_stop = diff_stop
+
+            if (self._speed_current > vel_stop):
+                self._speed_current -= vel_stop
+            else:
+                self._speed_current = 0
+                self._winch.stopped()
+
+        elif (self._speed_current < 0):
+            self._speed_current = 0
+            self._winch.stopped()
+
+    def __fault(self):
+        self._board.emergency()
+        self._speed_current = 0
+
+    @abstractmethod
+    def _extraMode(self):
+        pass
+
+    def _isRunState(self) -> bool:
+        return (openwinch.controller.State.RUNNING == self._winch.getState() or openwinch.controller.State.START == self._winch.getState())
+
+    def _isStopState(self) -> bool:
+        return (openwinch.controller.State.STOP == self._winch.getState())
+
+    def _isFaultState(self) -> bool:
+        return (openwinch.controller.State.ERROR == self._winch.getState())
+
+    def _isInitState(self) -> bool:
+        return (openwinch.controller.State.INIT == self._winch.getState())
+
+    def _isBeginSecurity(self) -> bool:
+        return (self._board.getRotationFromBegin() - self.__security_begin <= 0)
+
+    def applyThrottleValue(self):
+        logger.debug("Calculate & apply throttle value.")
+        value = self.__speed_ratio * self._speed_current
+        self._board.setThrottleValue(value)
+
+    # Move to Board or Winch
+    def getDistance(self) -> float:
+        logger.debug("Calculate distance.")
+        return rotate2distance(self._board.getRotationFromBegin())
+
     def getSpeedCurrent(self) -> int:
-        self._speed_current
+        return self._speed_current
 
     def runControlLoop(self):
         """ Main Loop to control hardware. """
@@ -52,7 +133,7 @@ class ModeEngine(ABC):
         while getattr(t, "do_run", True):
             logger.debug("Current state : %s - speed : %s - limit : %s" % (self._winch.getState(),
                                                                            self._speed_current,
-                                                                           self._board.getRotationFromInit()))
+                                                                           self._board.getRotationFromBegin()))
 
             # INIT
             if (self._isInitState()):
@@ -73,101 +154,36 @@ class ModeEngine(ABC):
             if (self._isFaultState()):
                 self.__fault()
 
-            self.setThrottleValue()
+            self.applyThrottleValue()
 
             # CPU idle
             time.sleep(LOOP_DELAY)
 
         logger.debug("Stopping Control Loop.")
 
-    def _isRunState(self) -> bool:
-        return (openwinch.controller.State.RUNNING == self._winch.getState() or openwinch.controller.State.START == self._winch.getState())
-
-    def _isStopState(self) -> bool:
-        return (openwinch.controller.State.STOP == self._winch.getState())
-
-    def _isFaultState(self) -> bool:
-        return (openwinch.controller.State.ERROR == self._winch.getState())
-
-    def _isInitState(self) -> bool:
-        return (openwinch.controller.State.INIT == self._winch.getState())
-
-    def __initialize(self):
-        self._speed_current = 0
-        self._board.initialize()
-        self._winch.initialized()
-
-    def __starting(self):
-        # Increment speed
-        if (self._speed_current < self._winch.getSpeedTarget()):
-            self._speed_current += self._velocity_start
-
-            if (self._speed_current >= self._winch.getSpeedTarget()):
-                self._winch.started()
-
-        # Decrement speed
-        if (self._speed_current > self._winch.getSpeedTarget()):
-            vel_stop = self._velocity_stop
-            diff_stop = self._speed_current - self._winch.getSpeedTarget()
-            if (vel_stop > diff_stop):
-                vel_stop = diff_stop
-            if (self._speed_current > vel_stop):
-                self._speed_current -= vel_stop
-            else:
-                self._speed_current = 0
-
-    def __stopping(self):
-        if (self._speed_current > 0):
-            vel_stop = self._velocity_stop
-            diff_stop = self._speed_current - 0
-            if (vel_stop > diff_stop):
-                vel_stop = diff_stop
-            if (self._speed_current > vel_stop):
-                self._speed_current -= vel_stop
-            else:
-                self._speed_current = 0
-                self._winch.stopped()
-        elif (self._speed_current < 0):
-            self._speed_current = 0
-            self._winch.stopped()
-
-    def __fault(self):
-        self._board.emergency()
-        self._speed_current = 0
-
-    @abstractmethod
-    def _extraMode(self):
-        pass
-
-    def setThrottleValue(self):
-        value = self.__speed_ratio * self._speed_current
-        self._board.setThrottleValue(value)
-
-    def getDistance(self):
-        return rotate2distance(self._board.getRotationFromInit())
-
 
 class OneWayMode(ModeEngine):
 
-    __security = 20
-
     def _extraMode(self):
-        if (self._isRunState() and (self._board.getRotationFromInit() - self.__security <= 0)):  # Limit position START
+        if (self._isRunState() and self._isBeginSecurity()):  # Limit position START
             self._winch.stop()
 
 
 class TwoWayMode(ModeEngine):
 
-    __security = 20
+    __security_end = 20
     __standby_duration = 5
     __current_duration = 0
 
+    def _isEndSecurity(self):
+        return (self._board.getRotationFromInit() >= self._board.getRotationFromExtend() - self.__security_end)
+
     def _extraMode(self):
-        if (self._isRunState() and (self._board.getRotationFromInit() - self.__security <= 0)):  # Limit Position START
+        if (self._isRunState() and self._isBeginSecurity()):  # Limit Position BEGIN
             self._board.setReverse(True)
             self.__current_duration = self.__standby_duration
 
-        if (self._isRunState() and (self._board.getRotationFromInit() >= self._board.getRotationFromExtend() - self.__security)):  # Limit Position END
+        if (self._isRunState() and self._isEndSecurity()):  # Limit Position END
             self._board.setReverse(False)
             self.__current_duration = self.__standby_duration
 
@@ -182,23 +198,27 @@ class InfinityMode(ModeEngine):
         pass
 
 
-def modeFactory(winch, board, mode):
-    """ """
-    if (mode == str(Mode.OneWay)):
-        return OneWayMode(winch, board)
-    elif (mode == str(Mode.TwoWay)):
-        return TwoWayMode(winch, board)
-    elif (mode == str(Mode.Infinity)):
-        return InfinityMode(winch, board)
-    else:
-        raise NameError('Bad Mode config')
+class ModeFactory(ABC):
+    """Factory to manipulate Mode"""
 
+    @staticmethod
+    def modeFactory(winch, board, mode):
+        """ """
+        if (mode == str(ModeType.OneWay)):
+            return OneWayMode(winch, board)
+        elif (mode == str(ModeType.TwoWay)):
+            return TwoWayMode(winch, board)
+        elif (mode == str(ModeType.Infinity)):
+            return InfinityMode(winch, board)
+        else:
+            raise NameError('Bad Mode config')
 
-def getMode(modeEngine) -> Mode:
-    """ """
-    if (isinstance(modeEngine, OneWayMode)):
-        return Mode.OneWay
-    elif (isinstance(modeEngine, TwoWayMode)):
-        return Mode.TwoWay
-    elif (isinstance(modeEngine, InfinityMode)):
-        return Mode.Infinity
+    @staticmethod
+    def getMode(modeEngine) -> ModeType:
+        """ """
+        if (isinstance(modeEngine, OneWayMode)):
+            return ModeType.OneWay
+        elif (isinstance(modeEngine, TwoWayMode)):
+            return ModeType.TwoWay
+        elif (isinstance(modeEngine, InfinityMode)):
+            return ModeType.Infinity

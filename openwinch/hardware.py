@@ -27,6 +27,7 @@ class Board(ABC):
     _winch = None
     _lcd = None
     _input = None
+
     _reverse = False
     _speed_mode = SpeedMode.LOW
     _rotation_from_init = 0
@@ -70,13 +71,14 @@ class Board(ABC):
     def getSpeedMode(self) -> SpeedMode:
         return self._speed_mode
 
+    @abstractmethod
     def getBattery(self) -> int:
         return 100
 
-    def getRotationFromInit(self):
+    def getRotationFromBegin(self):
         return self._rotation_from_init
 
-    def getRotationFromExtend(self):
+    def getRotationFromEnd(self):
         return 60
 
 
@@ -111,3 +113,8 @@ class Emulator(Board):
 
     def setReverse(self, enable):
         super().setReverse(enable)
+
+    def getBattery(self) -> int:
+        power_now = open("/sys/class/power_supply/BAT0/energy_now", "r").readline()
+        power_full = open("/sys/class/power_supply/BAT0/energy_full", "r").readline()
+        return int(float(power_now) / float(power_full) * 100)

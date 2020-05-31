@@ -11,7 +11,7 @@ from openwinch.controller import (
     State
 )
 from openwinch.logger import logger
-from openwinch.mode import (modeFactory, Mode, ModeEngine, OneWayMode, TwoWayMode, InfinityMode)
+from openwinch.mode import (ModeFactory, ModeType, ModeEngine, OneWayMode, TwoWayMode, InfinityMode)
 from openwinch.singleton import (winch)
 from openwinch.version import __version__
 
@@ -23,8 +23,8 @@ __all__ = ['config',
            'Winch',
            'State',
            'logger',
-           'modeFactory',
-           'Mode',
+           'ModeFactory',
+           'ModeType',
            'ModeEngine',
            'OneWayMode',
            'TwoWayMode',

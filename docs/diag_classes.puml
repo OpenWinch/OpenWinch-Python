@@ -52,18 +52,24 @@ namespace openwinch.controller {
 
 namespace openwinch.mode {
 
-    enum Mode {
+    enum ModeType {
         OneWay = 1
         TwoWay = 2
         Infinity = 3
         +list()
     }
 
+    abstract class ModeFactory {
+        {static}+modeFactory(winch: Winch, board: Board, mode: ModeType) : ModeEngine
+        {static}+getMode(modeEngine: ModeEngine) : ModeType
+    }
+
     abstract class ModeEngine {
+        -security_begin: int = 20
+        -speed_ratio: float = 1
+        -velocity_start: int = 1
+        -velocity_stop: int = 3
         #speed_current = 0
-        #velocity_start = 1
-        #velocity_stop = 3
-        -speed_ratio = 1
         -initialize()
         -starting()
         -stopping()
@@ -73,23 +79,38 @@ namespace openwinch.mode {
         #isStopState() : bool
         #isFaultState() : bool
         #isInitState() : bool
-        +getDistance()
-        +getSpeedCurrent()
+        #isBeginSecurity() : bool
+        +applyThrottleValue()
+        +getDistance() : float
+        +getSpeedCurrent() : int
         +runControlLoop()
-        +setThrottleValue()
     }
 
-    class OneWayMode extends ModeEngine
-    class TwoWayMode extends ModeEngine
-    class InfinityMode extends ModeEngine
+    class OneWayMode extends ModeEngine {
+        #extraMode()
+    }
+    class TwoWayMode extends ModeEngine{
+        #extraMode()
+    }
+    class InfinityMode extends ModeEngine{
+        #extraMode()
+    }
 
     ModeEngine o-right-> "board" openwinch.hardware.Board
     ModeEngine "mode" o-up- "winch" openwinch.controller.Winch
-    ModeEngine .left.> Mode
-
+    ModeEngine .left.> ModeType
+    ModeFactory .up.> OneWayMode
+    ModeFactory .up.> TwoWayMode
+    ModeFactory .up.> InfinityMode
 }
 
 namespace openwinch.hardware {
+
+    enum SpeedMode {
+        LOW = 0
+        MEDIUM = 1
+        HIGH = 2
+    }
 
     abstract class Board {
         -reverse: boolean = False
@@ -97,8 +118,8 @@ namespace openwinch.hardware {
         -rotation_from_init: int = 0
         {abstract}+emergency()
         +getBattery()
-        +getRotationFromExtend()
-        +getRotationFromInit()
+        +getRotationFromBegin()
+        +getRotationFromEnd()
         +getSpeedMode()
         {abstract}+getThrottleValue()
         {abstract}+initialize()
@@ -111,15 +132,21 @@ namespace openwinch.hardware {
     class Emulator extends Board {
         -value: int = 0
         -init: boolean = False
+        +emergency()
+        +getThrottleValue()
+        +initialize()
+        +setReverse(enable: boolean)
+        +setSpeedMode(speed_mode: SpeedMode)
+        +setThrottleValue(value)
     }
 
     class RaspberryPi extends Board {
-    }
-
-    enum SpeedMode {
-        LOW = 0
-        MEDIUM = 1
-        HIGH = 2
+        +emergency()
+        +getThrottleValue()
+        +initialize()
+        +setReverse(enable: boolean)
+        +setSpeedMode(speed_mode: SpeedMode)
+        +setThrottleValue(value)
     }
 
     Board ..> SpeedMode

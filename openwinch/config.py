@@ -9,7 +9,7 @@ from os import environ
 
 class Config(object):
     BOARD = environ.get('OW_BOARD', 'openwinch.hardwarePi.RaspberryPi')
-    MODE = environ.get('OW_MODE', 'Mode.OneWay')
+    MODE = environ.get('OW_MODE', 'ModeType.OneWay')
 
 
 config = Config()
