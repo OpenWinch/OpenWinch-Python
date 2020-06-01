@@ -13,11 +13,11 @@ UART_TX = 14
 UART_RX = 15
 
 # Reverse/Init(hold)
-IN_REVERSE = 4
+IN_KEY_ENTER = 4
 
 # Move Left
-IN_MOVE_LEFT = 22
-IN_MOVE_RIGHT = 23
+IN_KEY_LEFT = 22
+IN_KEY_RIGHT = 23
 
 # Reverse
 OUT_REVERSE = 17

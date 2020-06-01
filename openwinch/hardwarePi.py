@@ -6,19 +6,28 @@
 
 from openwinch.controller import Winch
 from openwinch.hardware import (Board, SpeedMode)
-from openwinch.hardware_config import (IN_REVERSE,
+from openwinch.hardware_config import (IN_KEY_ENTER,
+                                       IN_KEY_LEFT,
+                                       IN_KEY_RIGHT,
                                        OUT_REVERSE,
-                                       IN_MOVE_LEFT,
-                                       IN_MOVE_RIGHT,
                                        OUT_SPD,
                                        OUT_PWR,
                                        OUT_THROTTLE)
+from openwinch.input import InputType
 from openwinch.logger import logger
 
 from gpiozero import Button, PWMOutputDevice, OutputDevice
 
 
 class RaspberryPi(Board):
+
+    __power_cmd = None
+    __reverse_cmd = None
+    __speed_cmd = None
+    __throttle_cmd = None
+    __key_enter_btn = None
+    __key_left_btn = None
+    __key_right_btn = None
 
     def __init__(self, winch: Winch):
         logger.debug("IO : Initialize Hardware...")
@@ -29,12 +38,7 @@ class RaspberryPi(Board):
         self.__power_cmd.off()
 
         # Reverse
-        self.__reverse_btn = Button(IN_REVERSE)
         self.__reverse_cmd = OutputDevice(OUT_REVERSE)
-
-        # Move
-        self.__move_left_btn = Button(IN_MOVE_LEFT)
-        self.__move_right_btn = Button(IN_MOVE_RIGHT)
 
         # Speed mode (Lo, Medium, Hi)
         self.__speed_cmd = OutputDevice(OUT_SPD)
@@ -42,25 +46,27 @@ class RaspberryPi(Board):
         # Throlle
         self.__throttle_cmd = PWMOutputDevice(OUT_THROTTLE)
 
+        # Move
+        self.__key_enter_btn = Button(IN_KEY_ENTER)
+        self.__key_left_btn = Button(IN_KEY_LEFT)
+        self.__key_right_btn = Button(IN_KEY_RIGHT)
+
         # Register event
-        self.__reverse_btn.when_pressed = self.__pressedReverse
-        self.__reverse_btn.when_held = self.__pressedInit
-        self.__move_left_btn = self.__pressedLeft
-        self.__move_right_btn = self.__pressedRight
+        self.__key_enter_btn.when_pressed = self.__pressedEnter
+        self.__key_left_btn = self.__pressedLeft
+        self.__key_right_btn = self.__pressedRight
 
     def __pressedRight(self):
         logger.debug("IO : Move Right pressed !")
+        self._lcd.enter(InputType.RIGHT)
 
     def __pressedLeft(self):
         logger.debug("IO : Move Left pressed !")
+        self._lcd.enter(InputType.LEFT)
 
-    def __pressedInit(self):
-        logger.debug("IO : Init/Reset pressed !")
-        self.setSpeedMode(SpeedMode.HIGH)  # TODO(Mick) : validate with motor
-
-    def __pressedReverse(self):
-        logger.debug("IO : Reverse pressed !")
-        self.setReverse(not self.isReverse())
+    def __pressedEnter(self):
+        logger.debug("IO : Enter pressed !")
+        self._lcd.enter(InputType.ENTER)
 
     def initialize(self):
         """ Initialize """

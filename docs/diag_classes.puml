@@ -141,8 +141,15 @@ namespace openwinch.hardware {
     }
 
     class RaspberryPi extends Board {
+        -power_cmd: OutputDevice
+        -reverse_cmd: OutputDevice
+        -speed_cmd: OutputDevice
+        -throttle_cmd: PWMOutputDevice
+        -key_enter_btn: Button
+        -key_left_btn: Button
+        -key_right_btn: Button
         +emergency()
-        +getThrottleValue()
+        +getThrottleValue() : float
         +initialize()
         +setReverse(enable: boolean)
         +setSpeedMode(speed_mode: SpeedMode)
@@ -150,7 +157,7 @@ namespace openwinch.hardware {
     }
 
     Board ..> SpeedMode
-    Board o-up-> "winch" openwinch.controller.Winch
+    Board "board" o-up- "winch" openwinch.controller.Winch
 
 }
 
@@ -179,30 +186,51 @@ namespace openwinch.display {
     }
 
     class MainScreen extends ScreenBase {
+        +countItems(self): int
+        +display(self, draw)
+        +enter(self, cursor_pos)
     }
 
     class MenuScreen extends ScreenBase {
+        +countItems(self): int
+        +display(self, draw)
+        +enter(self, cursor_pos)
     }
 
     class ManualPositionScreen extends ScreenBase {
+        +countItems(self): int
+        +display(self, draw)
+        +enter(self, cursor_pos)
     }
 
     class SecurityDistanceScreen extends ScreenBase {
         +TITLE
         +value
+        +countItems(self): int
+        +display(self, draw)
+        +enter(self, cursor_pos)
     }
 
     class ModeSelectorScreen extends ScreenBase {
+        +countItems(self): int
+        +display(self, draw)
+        +enter(self, cursor_pos)
     }
 
     class VelocityStartScreen extends ScreenBase {
         +TITLE
         +value
+        +countItems(self): int
+        +display(self, draw)
+        +enter(self, cursor_pos)
     }
 
     class VelocityStopScreen extends ScreenBase {
         +TITLE
         +value
+        +countItems(self): int
+        +display(self, draw)
+        +enter(self, cursor_pos)
     }
 
     openwinch.hardware.Board *-left-> "lcd" Lcd

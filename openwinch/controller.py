@@ -33,8 +33,10 @@ class State(Enum):
 class Winch(object):
     """ Winch controller class. """
 
+    __board = None
     __controlLoop = None
     __mode = None
+
     __state = State.UNKNOWN
     __speed_target = SPEED_INIT
 
@@ -66,11 +68,11 @@ class Winch(object):
 
     def __loadConfig(self):
         logger.debug("Board config : %s" % config.BOARD)
-        board = loadClass(config.BOARD, self)
-        logger.info("Board : %s" % type(board).__name__)
+        self.__board = loadClass(config.BOARD, self)
+        logger.info("Board : %s" % type(self.__board).__name__)
 
         logger.debug("Mode config : %s" % config.MODE)
-        self.__mode = ModeFactory.modeFactory(self, board, config.MODE)
+        self.__mode = ModeFactory.modeFactory(self, self.__board, config.MODE)
         logger.info("Mode : %s" % self.getMode())
 
     def __initControlLoop(self):

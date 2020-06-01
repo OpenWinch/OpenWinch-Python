@@ -15,6 +15,7 @@ import threading
 from openwinch.controller import State
 from openwinch.constantes import SPEED_UNIT, WINCH_DISTANCE
 from openwinch.input import InputType
+from openwinch.logger import logger
 from openwinch.display_config import (ITEM_BACK,
                                       COLOR_PRIM_FONT,
                                       COLOR_PRIM_BACK,
