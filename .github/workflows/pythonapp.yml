@@ -32,5 +32,5 @@ jobs:
     - name: Test with unittest
       run: |
         export OW_BOARD='openwinch.hardware.Emulator'
-        export OW_GUI='VGA'
+        export OW_GUI='DISABLE'
         python -m unittest tests/test_winch.py
