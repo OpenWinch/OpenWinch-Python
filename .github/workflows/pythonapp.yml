@@ -31,4 +31,6 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with unittest
       run: |
+        export OW_BOARD='openwinch.hardware.Emulator'
+        export OW_GUI='VGA'
         python -m unittest tests/test_winch.py
