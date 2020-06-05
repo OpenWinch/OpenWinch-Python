@@ -65,8 +65,10 @@ class Gui(object):
 
             self.__device = capture(width=LCD_WIDTH, height=LCD_HEIGHT, rotate=0, mode='1', transform='scale2x', scale=2, file_template="docs/images/screens/OpenWinch_{0:06}.png")
 
+        if (self.__device is not None):
+            self.__device.show()
+
         self.__winch = winch
-        self.__device.show()
         self.__font = ImageFont.truetype(FONT_TEXT, 8)
         self.__regulator = framerate_regulator(fps=LCD_FPS)
 
@@ -76,17 +78,18 @@ class Gui(object):
         return self.__winch
 
     def __drawBoot(self):
-        with canvas(self.__device) as draw:
-            font_size = 20
-            name = "OpenWinch"
+        if (self.__device is not None):
+            with canvas(self.__device) as draw:
+                font_size = 20
+                name = "OpenWinch"
 
-            x = (LCD_WIDTH / 2) - (len(name) / 2 * font_size / 2)
-            xver = (LCD_WIDTH / 2) + (((len(name) / 2) - 1) * font_size / 2)
-            y = (LCD_HEIGHT / 2) - (font_size / 2)
-            yver = y + font_size
+                x = (LCD_WIDTH / 2) - (len(name) / 2 * font_size / 2)
+                xver = (LCD_WIDTH / 2) + (((len(name) / 2) - 1) * font_size / 2)
+                y = (LCD_HEIGHT / 2) - (font_size / 2)
+                yver = y + font_size
 
-            draw.text((x, y), name, fill=COLOR_PRIM_FONT, font=ImageFont.truetype(FONT_LOGO, font_size))
-            draw.text((xver, yver), __version__, fill=COLOR_PRIM_FONT, font=ImageFont.truetype(FONT_TEXT, 8))
+                draw.text((x, y), name, fill=COLOR_PRIM_FONT, font=ImageFont.truetype(FONT_LOGO, font_size))
+                draw.text((xver, yver), __version__, fill=COLOR_PRIM_FONT, font=ImageFont.truetype(FONT_TEXT, 8))
 
     def boot(self):
         self.__drawBoot()
@@ -94,8 +97,9 @@ class Gui(object):
         self.__display_draw_Loop.start()
 
     def display(self):
-        with canvas(self.__device) as draw:
-            self.screen.display(draw)
+        if (self.__device is not None):
+            with canvas(self.__device) as draw:
+                self.screen.display(draw)
 
     def getPos(self):
         return self.cursor_pos
