@@ -6,7 +6,6 @@
 
 from openwinch.logger import logger
 from openwinch.constantes import (MOTOR_MAX, LOOP_DELAY)
-import openwinch.controller
 from openwinch.utils import rotate2distance
 
 from enum import Enum, unique
@@ -96,18 +95,6 @@ class ModeEngine(ABC):
     def _extraMode(self):
         pass
 
-    def _isRunState(self) -> bool:
-        return (openwinch.controller.State.RUNNING == self._winch.getState() or openwinch.controller.State.START == self._winch.getState())
-
-    def _isStopState(self) -> bool:
-        return (openwinch.controller.State.STOP == self._winch.getState())
-
-    def _isFaultState(self) -> bool:
-        return (openwinch.controller.State.ERROR == self._winch.getState())
-
-    def _isInitState(self) -> bool:
-        return (openwinch.controller.State.INIT == self._winch.getState())
-
     def _isBeginSecurity(self) -> bool:
         return (self._board.getRotationFromBegin() - self.__security_begin <= 0)
 
@@ -136,22 +123,22 @@ class ModeEngine(ABC):
                                                                            self._board.getRotationFromBegin()))
 
             # INIT
-            if (self._isInitState()):
+            if (self._winch.getState().isInit):
                 self.__initialize()
 
             # STARTING or RUNNING
-            if (self._isRunState()):
+            if (self._winch.getState().isRun):
                 self.__starting()
 
             # STOP
-            if (self._isStopState()):
+            if (self._winch.getState().isStop):
                 self.__stopping()
 
             # Specifical mode
             self._extraMode()
 
             # EMERGENCY
-            if (self._isFaultState()):
+            if (self._winch.getState().isFault):
                 self.__fault()
 
             self.applyThrottleValue()
@@ -165,7 +152,7 @@ class ModeEngine(ABC):
 class OneWayMode(ModeEngine):
 
     def _extraMode(self):
-        if (self._isRunState() and self._isBeginSecurity()):  # Limit position START
+        if (self._winch.getState().isRun and self._isBeginSecurity()):  # Limit position START
             self._winch.stop()
 
 
@@ -179,11 +166,11 @@ class TwoWayMode(ModeEngine):
         return (self._board.getRotationFromInit() >= self._board.getRotationFromExtend() - self.__security_end)
 
     def _extraMode(self):
-        if (self._isRunState() and self._isBeginSecurity()):  # Limit Position BEGIN
+        if (self._winch.getState().isRun and self._isBeginSecurity()):  # Limit Position BEGIN
             self._board.setReverse(True)
             self.__current_duration = self.__standby_duration
 
-        if (self._isRunState() and self._isEndSecurity()):  # Limit Position END
+        if (self._winch.getState().isRun and self._isEndSecurity()):  # Limit Position END
             self._board.setReverse(False)
             self.__current_duration = self.__standby_duration
 

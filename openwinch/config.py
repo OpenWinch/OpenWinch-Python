@@ -10,6 +10,7 @@ from os import environ
 class Config(object):
     BOARD = environ.get('OW_BOARD', 'openwinch.hardwarePi.RaspberryPi')
     MODE = environ.get('OW_MODE', 'ModeType.OneWay')
+    GUI = environ.get('OW_GUI', 'SH1106_I2C')
 
 
 config = Config()

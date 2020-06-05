@@ -14,7 +14,7 @@ web_main = Blueprint('web_main', __name__)
 
 def render_main():
     enable = "white"
-    if (winch.getState() == State.START or winch.getState() == State.RUNNING):
+    if (winch.getState().isRun):
         enable = "lime"
     elif (winch.getState() == State.ERROR):
         enable = "red"

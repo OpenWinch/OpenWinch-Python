@@ -9,10 +9,12 @@ from luma.core.sprite_system import framerate_regulator
 from PIL import ImageFont
 
 from abc import ABC, abstractmethod
+from enum import Enum, unique
+
 import sys
 import threading
 
-from openwinch.controller import State
+from openwinch.config import config
 from openwinch.constantes import SPEED_UNIT, WINCH_DISTANCE
 from openwinch.input import InputType
 from openwinch.logger import logger
@@ -21,7 +23,6 @@ from openwinch.display_config import (ITEM_BACK,
                                       COLOR_PRIM_BACK,
                                       COLOR_SELC_FONT,
                                       COLOR_SELC_BACK,
-                                      LCD_MODE,
                                       FONT_TEXT,
                                       FONT_ICON,
                                       FONT_LOGO)
@@ -29,7 +30,15 @@ from openwinch.hardware_config import (LCD_HEIGHT, LCD_WIDTH, LCD_ADDR, LCD_FPS)
 from openwinch.version import __version__
 
 
-class Lcd(object):
+@unique
+class GuiType(Enum):
+    DISABLE = 0
+    SH1106_I2C = 1
+    VGA = 100
+    CAPTURE = 101
+
+
+class Gui(object):
 
     cursor_pos = 1
     view_pos = 0
@@ -41,16 +50,19 @@ class Lcd(object):
     # distance = 1
 
     def __init__(self, winch):
-        if (LCD_MODE == 1):
+        if (config.GUI == GuiType.SH1106_I2C.name):
             from luma.core.interface.serial import i2c
             from luma.oled.device import sh1106
+
             serial_interface = i2c(port=1, address=LCD_ADDR)
             self.__device = sh1106(serial_interface, width=LCD_WIDTH, height=LCD_HEIGHT, rotate=0)
-        elif (LCD_MODE == 2):
+        elif (config.GUI == GuiType.VGA.name):
             from luma.emulator.device import pygame
+
             self.__device = pygame(width=LCD_WIDTH, height=LCD_HEIGHT, rotate=0, mode='1', transform='scale2x', scale=2, frame_rate=60)
-        elif (LCD_MODE == 3):
+        elif (config.GUI == GuiType.CAPTURE.name):
             from luma.emulator.device import capture
+
             self.__device = capture(width=LCD_WIDTH, height=LCD_HEIGHT, rotate=0, mode='1', transform='scale2x', scale=2, file_template="docs/images/screens/OpenWinch_{0:06}.png")
 
         self.__winch = winch
@@ -78,8 +90,8 @@ class Lcd(object):
 
     def boot(self):
         self.__drawBoot()
-        self.__display__draw_Loop = threading.Thread(target=self.__draw_loop, name="display", args=(), daemon=True)
-        self.__display__draw_Loop.start()
+        self.__display_draw_Loop = threading.Thread(target=self.__draw_loop, name="display", args=(), daemon=True)
+        self.__display_draw_Loop.start()
 
     def display(self):
         with canvas(self.__device) as draw:
@@ -181,14 +193,13 @@ class Lcd(object):
 
     def __draw_loop(self):
         t = threading.currentThread()
-        if (LCD_MODE == 1 or LCD_MODE == 2):
+        if (config.GUI != GuiType.DISABLE.name and config.GUI != GuiType.CAPTURE.name):
             while getattr(t, "do_run", True):
                 with self.__regulator:
-                    if (self.__winch.getState() != State.UNKNOWN):
+                    if (self.__winch.getState().isBoot):
                         self.display()
                     else:
                         self.__drawBoot()
-                    #self.enter(get()) # move on specific thread
         else:
             self.extractScreen
 
@@ -197,72 +208,76 @@ class Lcd(object):
         self.display()
 
         # Stop Screen 003
-        self.enter(ENTER)
+        self.enter(InputType.ENTER)
         self.display()
 
         # Play Screen
-        self.enter(ENTER)
+        self.enter(InputType.ENTER)
 
         # Menu Screen 004 & 005
-        self.enter(RIGHT)
+        self.enter(InputType.RIGHT)
         self.display()
-        self.enter(ENTER)
+        self.enter(InputType.ENTER)
         self.display()
 
         # Manual postition 006 & 007
-        self.enter(RIGHT)
+        self.enter(InputType.RIGHT)
         self.display()
-        self.enter(ENTER)
+        self.enter(InputType.ENTER)
         self.display()
-        self.enter(ENTER)
+        self.enter(InputType.ENTER)
 
         # Security distance 008 & 009
-        self.enter(RIGHT)
-        self.enter(RIGHT)
+        self.enter(InputType.RIGHT)
+        self.enter(InputType.RIGHT)
         self.display()
-        self.enter(ENTER)
+        self.enter(InputType.ENTER)
         self.display()
-        self.enter(ENTER)
+        self.enter(InputType.ENTER)
 
         # Mode Selector 010 & 011
-        self.enter(RIGHT)
-        self.enter(RIGHT)
-        self.enter(RIGHT)
+        self.enter(InputType.RIGHT)
+        self.enter(InputType.RIGHT)
+        self.enter(InputType.RIGHT)
         self.display()
-        self.enter(ENTER)
+        self.enter(InputType.ENTER)
         self.display()
-        self.enter(RIGHT)
+        self.enter(InputType.RIGHT)
         self.display()
-        self.enter(ENTER)
+        self.enter(InputType.ENTER)
 
         # Mode Velocity Start 012 & 013
-        self.enter(RIGHT)
-        self.enter(RIGHT)
-        self.enter(RIGHT)
-        self.enter(RIGHT)
+        self.enter(InputType.RIGHT)
+        self.enter(InputType.RIGHT)
+        self.enter(InputType.RIGHT)
+        self.enter(InputType.RIGHT)
         self.display()
-        self.enter(ENTER)
+        self.enter(InputType.ENTER)
         self.display()
-        self.enter(ENTER)
+        self.enter(InputType.ENTER)
 
         # Mode Velocity Stop 014 & 015
-        self.enter(RIGHT)
-        self.enter(RIGHT)
-        self.enter(RIGHT)
-        self.enter(RIGHT)
-        self.enter(RIGHT)
+        self.enter(InputType.RIGHT)
+        self.enter(InputType.RIGHT)
+        self.enter(InputType.RIGHT)
+        self.enter(InputType.RIGHT)
+        self.enter(InputType.RIGHT)
         self.display()
-        self.enter(ENTER)
+        self.enter(InputType.ENTER)
         self.display()
-        self.enter(ENTER)
+        self.enter(InputType.ENTER)
 
 
 class ScreenBase(ABC):
 
-    def __init__(self, display):
-        self._display = display
-        self._display.cursor_pos = 0
-        self._display.view_pos = 0
+    _gui = None
+    _winch = None
+
+    def __init__(self, gui):
+        self._gui = gui
+        self._gui.cursor_pos = 0
+        self._gui.view_pos = 0
+        self._winch = self._gui.getWinch()
 
     @abstractmethod
     def countItems(self) -> int:
@@ -291,26 +306,25 @@ class MainScreen(ScreenBase):
         self.__inver = True
 
         # Status bar
-        self._display.statusBar(draw)
+        self._gui.statusBar(draw)
 
         # Speed
         speed_x = 54
-        draw.text((speed_x, 14), "%s" % self._display.getWinch().getSpeedTarget(), fill="white", font=ImageFont.truetype(FONT_TEXT, 35))
+        draw.text((speed_x, 14), "%s" % self._winch.getSpeedTarget(), fill="white", font=ImageFont.truetype(FONT_TEXT, 35))
         draw.text((speed_x + 40, 28), SPEED_UNIT, fill="white", font=ImageFont.truetype(FONT_TEXT, 15))  # Very good
 
         # Distance
         marg = 4
-        percent = 1 / WINCH_DISTANCE * self._display.getWinch().getDistance()
+        percent = 1 / WINCH_DISTANCE * self._winch.getDistance()
         draw.rectangle([0 + marg, 11, ((LCD_WIDTH - marg) * percent), 14], fill="white", outline="white")
 
-        current_state = self._display.getWinch().getState()
-        if (current_state == State.IDLE or current_state == State.STOP):
-            self._display.createMenuIcon(draw, self.__ITEMS_IDLE)
-        elif (current_state == State.RUNNING or current_state == State.START):
-            self._display.createMenuIcon(draw, self.__ITEMS_RUNNING)
+        if (self._winch.getState().isStop):
+            self._gui.createMenuIcon(draw, self.__ITEMS_IDLE)
+        elif (self._winch.getState().isRun):
+            self._gui.createMenuIcon(draw, self.__ITEMS_RUNNING)
             self.__animateDistance(draw)
         else:
-            self._display.createMenuIcon(draw, self.__ITEMS_ERROR)
+            self._gui.createMenuIcon(draw, self.__ITEMS_ERROR)
 
     def __animateDistance(self, draw):
         cursor_size = 2
@@ -323,14 +337,13 @@ class MainScreen(ScreenBase):
                 draw.rectangle([self.__count + (i * stepper), 11, (self.__count + (i * stepper)) + cursor_size, 14], fill="black", outline="black")
 
     def enter(self, cursor_pos):
-        current_state = self._display.getWinch().getState()
         if (0 == cursor_pos):
-            if (current_state == State.IDLE or current_state == State.STOP):
-                self._display.getWinch().start()
+            if (self._winch.getState().isStop):
+                self._winch.start()
             else:
-                self._display.getWinch().stop()
+                self._winch.stop()
         if (1 == cursor_pos):
-            self._display.screen = MenuScreen(self._display)
+            self._gui.screen = MenuScreen(self._gui)
         if (2 == cursor_pos):
             pass
 
@@ -350,30 +363,30 @@ class MenuScreen(ScreenBase):
         return len(self.__ITEMS_MENU)
 
     def display(self, draw):
-        self._display.createMenuScroll(draw, self.__ITEMS_MENU)
+        self._gui.createMenuScroll(draw, self.__ITEMS_MENU)
 
     def enter(self, cursor_pos):
         if (0 == cursor_pos):
-            self._display.screen = MainScreen(self._display)
+            self._gui.screen = MainScreen(self._gui)
         else:
             if (1 == cursor_pos):
-                self._display.screen = ManualPositionScreen(self._display)
+                self._gui.screen = ManualPositionScreen(self._gui)
             elif (2 == cursor_pos):
-                self._display.screen = SecurityDistanceScreen(self._display)
+                self._gui.screen = SecurityDistanceScreen(self._gui)
             elif (3 == cursor_pos):
-                self._display.screen = ModeSelectorScreen(self._display)
+                self._gui.screen = ModeSelectorScreen(self._gui)
             elif (4 == cursor_pos):
-                self._display.screen = VelocityStartScreen(self._display)
+                self._gui.screen = VelocityStartScreen(self._gui)
             elif (5 == cursor_pos):
-                self._display.screen = VelocityStopScreen(self._display)
+                self._gui.screen = VelocityStopScreen(self._gui)
 
 
 class ManualPositionScreen(ScreenBase):
 
-    def __init__(self, display):
-        super(ManualPositionScreen, self).__init__(display)
+    def __init__(self, gui):
+        super(ManualPositionScreen, self).__init__(gui)
         # Load from item
-        self._display.cursor_pos = sys.maxsize / 2
+        self._gui.cursor_pos = sys.maxsize / 2
 
     def countItems(self) -> int:
         return sys.maxsize
@@ -386,27 +399,27 @@ class ManualPositionScreen(ScreenBase):
         draw.text((0, 0.80 * LCD_HEIGHT), "enter to exit.", fill="black", font=ImageFont.truetype(FONT_TEXT, 12))
 
     def enter(self, cursor_pos):
-        self._display.screen = MenuScreen(self._display)
+        self._gui.screen = MenuScreen(self._gui)
 
 
 class SecurityDistanceScreen(ScreenBase):
     TITLE = "Security distance"
     value = 10
 
-    def __init__(self, display):
-        super(SecurityDistanceScreen, self).__init__(display)
+    def __init__(self, gui):
+        super(SecurityDistanceScreen, self).__init__(gui)
         # Load from item
-        self._display.cursor_pos = self.value
+        self._gui.cursor_pos = self.value
 
     def countItems(self) -> int:
         return 255
 
     def display(self, draw):
-        self._display.createValue(draw, self.TITLE, self._display.getPos())
+        self._gui.createValue(draw, self.TITLE, self._gui.getPos())
 
     def enter(self, cursor_pos):
         #  Save to item
-        self._display.screen = MenuScreen(self._display)
+        self._gui.screen = MenuScreen(self._gui)
 
 
 class ModeSelectorScreen(ScreenBase):
@@ -417,57 +430,57 @@ class ModeSelectorScreen(ScreenBase):
         "TwoWay",
     ]
 
-    def __init__(self, display):
-        super(ModeSelectorScreen, self).__init__(display)
+    def __init__(self, gui):
+        super(ModeSelectorScreen, self).__init__(gui)
         # Load from item
-        # self._display.cursor_pos = 0
+        # self._gui.cursor_pos = 0
 
     def countItems(self) -> int:
         return len(self.__ITEMS)
 
     def display(self, draw):
-        self._display.createMenuScroll(draw, self.__ITEMS, "OneWay")
+        self._gui.createMenuScroll(draw, self.__ITEMS, "OneWay")
 
     def enter(self, cursor_pos):
         #  Save to item
-        self._display.screen = MenuScreen(self._display)
+        self._gui.screen = MenuScreen(self._gui)
 
 
 class VelocityStartScreen(ScreenBase):
     TITLE = "Velocity Start"
     value = 10
 
-    def __init__(self, display):
-        super(VelocityStartScreen, self).__init__(display)
+    def __init__(self, gui):
+        super(VelocityStartScreen, self).__init__(gui)
         # Load from item
-        self._display.cursor_pos = self.value
+        self._gui.cursor_pos = self.value
 
     def countItems(self) -> int:
         return 255
 
     def display(self, draw):
-        self._display.createValue(draw, self.TITLE, self._display.getPos())
+        self._gui.createValue(draw, self.TITLE, self._gui.getPos())
 
     def enter(self, cursor_pos):
         #  Save to item
-        self._display.screen = MenuScreen(self._display)
+        self._gui.screen = MenuScreen(self._gui)
 
 
 class VelocityStopScreen(ScreenBase):
     TITLE = "Velocity Stop"
     value = 10
 
-    def __init__(self, display):
-        super(VelocityStopScreen, self).__init__(display)
+    def __init__(self, gui):
+        super(VelocityStopScreen, self).__init__(gui)
         # Load from item
-        self._display.cursor_pos = self.value
+        self._gui.cursor_pos = self.value
 
     def countItems(self) -> int:
         return 255
 
     def display(self, draw):
-        self._display.createValue(draw, self.TITLE, self._display.getPos())
+        self._gui.createValue(draw, self.TITLE, self._gui.getPos())
 
     def enter(self, cursor_pos):
         #  Save to item
-        self._display.screen = MenuScreen(self._display)
+        self._gui.screen = MenuScreen(self._gui)

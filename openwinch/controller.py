@@ -4,30 +4,19 @@
 # OpneWinchPy : a library for controlling the Raspberry Pi's Winch
 # Copyright (c) 2020 Mickael Gaillard <mick.gaillard@gmail.com>
 
-from openwinch.version import __version__
-from openwinch.mode import (ModeFactory, ModeType)
-from openwinch.logger import logger
-from openwinch.utils import loadClass
-from openwinch.constantes import (SPEED_INIT, SPEED_MAX, SPEED_MIN)
-from openwinch.config import config
 
-from enum import Enum, unique
+from openwinch.config import config
+from openwinch.constantes import (SPEED_INIT, SPEED_MAX, SPEED_MIN)
+from openwinch.display import Gui
+from openwinch.keyboard import Keyboard
+from openwinch.logger import logger
+from openwinch.mode import ModeFactory, ModeType
+from openwinch.state import State
+from openwinch.utils import loadClass
+from openwinch.version import __version__
 
 import atexit
 import threading
-
-
-@unique
-class State(Enum):
-    """ State of Winch. """
-    UNKNOWN = -999
-    BOOTED = -2
-    ERROR = -1
-    INIT = 0
-    IDLE = 1
-    START = 2
-    RUNNING = 3
-    STOP = 4
 
 
 class Winch(object):
@@ -35,6 +24,8 @@ class Winch(object):
 
     __board = None
     __controlLoop = None
+    __gui = None
+    __input = None
     __mode = None
 
     __state = State.UNKNOWN
@@ -67,6 +58,11 @@ class Winch(object):
     /_/                                            Ver. %s""" % __version__) # noqa
 
     def __loadConfig(self):
+        logger.debug("Gui config : %s" % config.GUI)
+        self.__gui = Gui(self)
+        self.__gui.boot()
+        self._input = Keyboard(self, self.__gui)
+
         logger.debug("Board config : %s" % config.BOARD)
         self.__board = loadClass(config.BOARD, self)
         logger.info("Board : %s" % type(self.__board).__name__)
@@ -97,7 +93,7 @@ class Winch(object):
     def initialized(self):
         """ Call when hardware stop completely. """
 
-        if (self.__state == State.INIT):
+        if (self.__state.isInit):
             self.__changeState(State.IDLE)
 
     def start(self):
@@ -105,7 +101,7 @@ class Winch(object):
 
         logger.info("Press Start")
 
-        if (self.__state == State.IDLE or self.__state == State.STOP):
+        if (self.__state.isStop):
             self.__changeState(State.START)
 
         elif (self.__state == State.START):
@@ -125,7 +121,7 @@ class Winch(object):
 
         logger.info("Press Stop")
 
-        if (self.__state == State.RUNNING or self.__state == State.START):
+        if (self.__state.isRun):
             self.__changeState(State.STOP)
 
         elif (self.__state == State.STOP):
@@ -161,9 +157,9 @@ class Winch(object):
         mode : State Enum
             Mode to enable.
         """
-
-        logger.debug("Switch state : %s", state)
-        self.__state = state
+        if (self.__state != state):
+            logger.debug("Switch state : %s", state)
+            self.__state = state
 
     def getMode(self) -> ModeType:
         """ """
@@ -179,7 +175,7 @@ class Winch(object):
 
     def getBattery(self):
         """ Get actual state of Battery. """
-        return 90
+        return self.__board.getBattery()
 
     def getRemote(self):
         return 15
