@@ -2,3 +2,5 @@ pip
 setuptools
 Flask
 gpiozero
+luma.oled
+luma.emulator

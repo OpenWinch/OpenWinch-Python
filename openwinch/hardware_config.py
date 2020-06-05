@@ -13,18 +13,24 @@ UART_TX = 14
 UART_RX = 15
 
 # Reverse/Init(hold)
-IN_REVERSE = 4
+IN_KEY_ENTER = 4
 
 # Move Left
-IN_MOVE_LEFT = 22
-IN_MOVE_RIGHT = 23
+IN_KEY_LEFT = 22
+IN_KEY_RIGHT = 23
 
 # Reverse
 OUT_REVERSE = 17
 
 # Speed Mode
-OUT_SPD_LO = 24
-OUT_SPD_HI = 25
+OUT_SPD = 24
+OUT_PWR = 25
 
 # Throttle
 OUT_THROTTLE = 18
+
+LCD_WIDTH = 128
+LCD_HEIGHT = 64
+LCD_ADDR = 0x3c
+
+LCD_FPS = 10

@@ -4,38 +4,32 @@
 # OpneWinchPy : a library for controlling the Raspberry Pi's Winch
 # Copyright (c) 2020 Mickael Gaillard <mick.gaillard@gmail.com>
 
-from openwinch.version import __version__
-from openwinch.mode import (modeFactory, getMode, Mode)
-from openwinch.logger import logger
-from openwinch.utils import loadClass
-from openwinch.constantes import (SPEED_INIT, SPEED_MAX, SPEED_MIN)
-from openwinch.config import config
 
-from enum import Enum, unique
+from openwinch.config import config
+from openwinch.constantes import (SPEED_INIT, SPEED_MAX, SPEED_MIN)
+from openwinch.display import Gui
+from openwinch.keyboard import Keyboard
+from openwinch.logger import logger
+from openwinch.mode import ModeFactory, ModeType
+from openwinch.state import State
+from openwinch.utils import loadClass
+from openwinch.version import __version__
 
 import atexit
 import threading
 
 
-@unique
-class State(Enum):
-    """ State of Winch. """
-    ERROR = -999
-    UNKNOWN = -1
-    INIT = 0
-    IDLE = 1
-    START = 2
-    RUNNING = 3
-    STOP = 4
-
-
 class Winch(object):
     """ Winch controller class. """
 
+    __board = None
+    __controlLoop = None
+    __gui = None
+    __input = None
+    __mode = None
+
     __state = State.UNKNOWN
     __speed_target = SPEED_INIT
-    # __controlLoop
-    # __log
 
     def __init__(self):
         """ Constructor of Winch class. """
@@ -64,12 +58,17 @@ class Winch(object):
     /_/                                            Ver. %s""" % __version__) # noqa
 
     def __loadConfig(self):
+        logger.debug("Gui config : %s" % config.GUI)
+        self.__gui = Gui(self)
+        self.__gui.boot()
+        self._input = Keyboard(self, self.__gui)
+
         logger.debug("Board config : %s" % config.BOARD)
-        board = loadClass(config.BOARD)
-        logger.info("Board : %s" % type(board).__name__)
+        self.__board = loadClass(config.BOARD, self)
+        logger.info("Board : %s" % type(self.__board).__name__)
 
         logger.debug("Mode config : %s" % config.MODE)
-        self.__mode = modeFactory(self, board, config.MODE)
+        self.__mode = ModeFactory.modeFactory(self, self.__board, config.MODE)
         logger.info("Mode : %s" % self.getMode())
 
     def __initControlLoop(self):
@@ -78,6 +77,7 @@ class Winch(object):
         logger.debug("Initialize Control Loop...")
         self.__controlLoop = threading.Thread(target=self.__mode.runControlLoop, name="Ctrl", args=(), daemon=True)
         self.__controlLoop.start()
+        self.__changeState(State.BOOTED)
 
     def initialize(self):
         """ Initialise Hardware.
@@ -89,16 +89,19 @@ class Winch(object):
 
         logger.debug("Initialize Winch hardware...")
         self.__changeState(State.INIT)
-        # Split in two function
-        self.__changeState(State.IDLE)
-        logger.info("Initialized Winch !")
+
+    def initialized(self):
+        """ Call when hardware stop completely. """
+
+        if (self.__state.isInit):
+            self.__changeState(State.IDLE)
 
     def start(self):
         """ Command Start winch. """
 
         logger.info("Press Start")
 
-        if (self.__state == State.IDLE or self.__state == State.STOP):
+        if (self.__state.isStop):
             self.__changeState(State.START)
 
         elif (self.__state == State.START):
@@ -118,7 +121,7 @@ class Winch(object):
 
         logger.info("Press Stop")
 
-        if (self.__state == State.RUNNING or self.__state == State.START):
+        if (self.__state.isRun):
             self.__changeState(State.STOP)
 
         elif (self.__state == State.STOP):
@@ -127,7 +130,7 @@ class Winch(object):
         else:
             logger.error("Not possible to stop, re-initialize Winch !")
 
-    def stoped(self):
+    def stopped(self):
         """ Call when hardware stop completely. """
 
         if (self.__state == State.STOP):
@@ -154,25 +157,31 @@ class Winch(object):
         mode : State Enum
             Mode to enable.
         """
+        if (self.__state != state):
+            logger.debug("Switch state : %s", state)
+            self.__state = state
 
-        logger.debug("Switch state : %s", state)
-        self.__state = state
-
-    def getMode(self) -> Mode:
+    def getMode(self) -> ModeType:
         """ """
-        return getMode(self.__mode)
+        return ModeFactory.getMode(self.__mode)
 
     def getSpeedTarget(self):
         """ Get Target speed of winch."""
         return self.__speed_target
 
-    def getState(self):
+    def getState(self) -> State:
         """ Get actual state of winch. """
         return self.__state
 
     def getBattery(self):
         """ Get actual state of Battery. """
-        return 90
+        return self.__board.getBattery()
+
+    def getRemote(self):
+        return 15
+
+    def getDistance(self):
+        return self.__mode.getDistance()
 
     def speedUp(self, value=1):
         """ Up speed.

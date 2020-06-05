@@ -1,0 +1,262 @@
+@startuml
+
+skinparam class {
+    BackgroundColor White
+    ArrowColor Grey
+    BorderColor Black
+}
+
+title Diag classes - OpenWinch
+
+namespace openwinch.controller {
+
+    enum State {
+        UNKNOWN = -999
+        BOOTED = -2
+        ERROR = -1
+        INIT = 0
+        IDLE = 1
+        START = 2
+        RUNNING = 3
+        STOP = 4
+        {static}+checkRun(current): bool
+        {static}+checkStop(current): bool
+        {static}+checkFault(current): bool
+        {static}+checkInit(current): bool
+        +isRun() : bool
+        +isStop() : bool
+        +isFault() : bool
+        +isInit() : bool
+    }
+
+    class Winch {
+        -controlLoop = None
+        -speed_target = SPEED_INIT
+        -banner()
+        -changeState(state)
+        -initControlLoop()
+        -loadConfig()
+        +display()
+        +emergency()
+        +getBattery()
+        +getDistance()
+        +getMode()
+        +getRemote()
+        +getSpeedTarget()
+        +getState()
+        +initialize()
+        +initialized()
+        +speedDown(value=1)
+        +speedUp(value=1)
+        +speedValue(value)
+        +start()
+        +started()
+        +stop()
+        +stopped()
+    }
+
+    Winch o-left-> "state" State
+}
+
+namespace openwinch.mode {
+
+    enum ModeType {
+        OneWay = 1
+        TwoWay = 2
+        Infinity = 3
+        +list()
+    }
+
+    abstract class ModeFactory {
+        {static}+modeFactory(winch: Winch, board: Board, mode: ModeType) : ModeEngine
+        {static}+getMode(modeEngine: ModeEngine) : ModeType
+    }
+
+    abstract class ModeEngine {
+        -security_begin: int = 20
+        -speed_ratio: float = 1
+        -velocity_start: int = 1
+        -velocity_stop: int = 3
+        #speed_current = 0
+        -initialize()
+        -starting()
+        -stopping()
+        -fault()
+        {abstract}#extraMode()
+        #isBeginSecurity() : bool
+        +applyThrottleValue()
+        +getDistance() : float
+        +getSpeedCurrent() : int
+        +runControlLoop()
+    }
+
+    class OneWayMode extends ModeEngine {
+        #extraMode()
+    }
+    class TwoWayMode extends ModeEngine{
+        #extraMode()
+    }
+    class InfinityMode extends ModeEngine{
+        #extraMode()
+    }
+
+    ModeEngine o-right-> "board" openwinch.hardware.Board
+    ModeEngine "mode" o-up- "winch" openwinch.controller.Winch
+    ModeEngine .left.> ModeType
+    ModeFactory .up.> OneWayMode
+    ModeFactory .up.> TwoWayMode
+    ModeFactory .up.> InfinityMode
+}
+
+namespace openwinch.hardware {
+
+    enum SpeedMode {
+        LOW = 0
+        MEDIUM = 1
+        HIGH = 2
+    }
+
+    abstract class Board {
+        -reverse: boolean = False
+        -speed_mode: SpeedMode = SpeedMode.LOW
+        -rotation_from_init: int = 0
+        {abstract}+emergency()
+        +getBattery()
+        +getRotationFromBegin()
+        +getRotationFromEnd()
+        +getSpeedMode()
+        {abstract}+getThrottleValue()
+        {abstract}+initialize()
+        +isReverse()
+        {abstract}+setReverse(enable: boolean)
+        {abstract}+setSpeedMode(speed_mode: SpeedMode)
+        {abstract}+setThrottleValue(value)
+    }
+
+    class Emulator extends Board {
+        -value: int = 0
+        -init: boolean = False
+        +emergency()
+        +getThrottleValue()
+        +initialize()
+        +setReverse(enable: boolean)
+        +setSpeedMode(speed_mode: SpeedMode)
+        +setThrottleValue(value)
+    }
+
+    class RaspberryPi extends Board {
+        -power_cmd: OutputDevice
+        -reverse_cmd: OutputDevice
+        -speed_cmd: OutputDevice
+        -throttle_cmd: PWMOutputDevice
+        -key_enter_btn: Button
+        -key_left_btn: Button
+        -key_right_btn: Button
+        +emergency()
+        +getThrottleValue() : float
+        +initialize()
+        +setReverse(enable: boolean)
+        +setSpeedMode(speed_mode: SpeedMode)
+        +setThrottleValue(value)
+    }
+
+    Board ..> SpeedMode
+    Board "board" o-up- "winch" openwinch.controller.Winch
+
+}
+
+namespace openwinch.display {
+
+    enum GuiType {
+        DISABLE = 0
+        SH1106_I2C = 1
+        VGA = 100
+        CAPTURE = 101
+    }
+
+    class Gui {
+        +cursor_pos
+        +screen
+        +view_pos
+        +boot(self)
+        +createMenuIcon(self, draw, items)
+        +createMenuScroll(self, draw, items, selected_item=None)
+        +createValue(self, draw, title, value)
+        +display(self)
+        +enter(self, key)
+        +extractScreen(self)
+        +getPos(self)
+        +getWinch(self)
+        +statusBar(self, draw)
+    }
+
+    abstract class ScreenBase {
+        {abstract}+countItems(self): int
+        {abstract}+display(self, draw)
+        {abstract}+enter(self, cursor_pos)
+    }
+
+    class MainScreen extends ScreenBase {
+        +countItems(self): int
+        +display(self, draw)
+        +enter(self, cursor_pos)
+    }
+
+    class MenuScreen extends ScreenBase {
+        +countItems(self): int
+        +display(self, draw)
+        +enter(self, cursor_pos)
+    }
+
+    class ManualPositionScreen extends ScreenBase {
+        +countItems(self): int
+        +display(self, draw)
+        +enter(self, cursor_pos)
+    }
+
+    class SecurityDistanceScreen extends ScreenBase {
+        +TITLE
+        +value
+        +countItems(self): int
+        +display(self, draw)
+        +enter(self, cursor_pos)
+    }
+
+    class ModeSelectorScreen extends ScreenBase {
+        +countItems(self): int
+        +display(self, draw)
+        +enter(self, cursor_pos)
+    }
+
+    class VelocityStartScreen extends ScreenBase {
+        +TITLE
+        +value
+        +countItems(self): int
+        +display(self, draw)
+        +enter(self, cursor_pos)
+    }
+
+    class VelocityStopScreen extends ScreenBase {
+        +TITLE
+        +value
+        +countItems(self): int
+        +display(self, draw)
+        +enter(self, cursor_pos)
+    }
+
+    Gui o-right- "screen" ScreenBase
+    Gui o-up-> "winch" openwinch.controller.Winch
+    Gui ..> GuiType
+}
+
+namespace openwinch.config {
+    class Config {
+        +BOARD: String = "openwinch.hardwarePi.RaspberryPi"
+        +MODE: String = "Mode.OneWay"
+        +GUI: String = "SH1106_I2C"
+    }
+
+    openwinch.controller.Winch .right.> Config
+}
+
+@enduml

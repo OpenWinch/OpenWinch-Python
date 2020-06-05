@@ -6,13 +6,11 @@
 
 from openwinch.config import (config)
 from openwinch.constantes import *  # noqa
-from openwinch.controller import (
-    Winch,
-    State
-)
+from openwinch.controller import Winch
 from openwinch.logger import logger
-from openwinch.mode import (modeFactory, Mode, ModeEngine, OneWayMode, TwoWayMode, InfinityMode)
+from openwinch.mode import (ModeFactory, ModeType, ModeEngine, OneWayMode, TwoWayMode, InfinityMode)
 from openwinch.singleton import (winch)
+from openwinch.state import State
 from openwinch.version import __version__
 
 # Web Component
@@ -23,8 +21,8 @@ __all__ = ['config',
            'Winch',
            'State',
            'logger',
-           'modeFactory',
-           'Mode',
+           'ModeFactory',
+           'ModeType',
            'ModeEngine',
            'OneWayMode',
            'TwoWayMode',
