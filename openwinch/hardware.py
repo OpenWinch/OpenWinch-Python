@@ -73,6 +73,7 @@ class Board(ABC):
 
 
 class Emulator(Board):
+
     __value = 0
     __init = False
 

@@ -58,15 +58,15 @@ class RaspberryPi(Board):
 
     def __pressedRight(self):
         logger.debug("IO : Move Right pressed !")
-        self._lcd.enter(InputType.RIGHT)
+        self._winch.enterGui(InputType.RIGHT)
 
     def __pressedLeft(self):
         logger.debug("IO : Move Left pressed !")
-        self._lcd.enter(InputType.LEFT)
+        self._winch.enterGui(InputType.LEFT)
 
     def __pressedEnter(self):
         logger.debug("IO : Enter pressed !")
-        self._lcd.enter(InputType.ENTER)
+        self._winch.enterGui(InputType.ENTER)
 
     def initialize(self):
         """ Initialize """

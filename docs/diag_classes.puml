@@ -23,36 +23,39 @@ namespace openwinch.controller {
         {static}+checkStop(current): bool
         {static}+checkFault(current): bool
         {static}+checkInit(current): bool
+        {static}+checkBoot(current): bool
         +isRun() : bool
         +isStop() : bool
         +isFault() : bool
         +isInit() : bool
+        +isBoot() : bool
     }
 
     class Winch {
-        -controlLoop = None
+        -controlLoop: Thread = None
         -speed_target = SPEED_INIT
-        -banner()
-        -changeState(state)
-        -initControlLoop()
-        -loadConfig()
-        +display()
-        +emergency()
-        +getBattery()
-        +getDistance()
-        +getMode()
-        +getRemote()
-        +getSpeedTarget()
-        +getState()
-        +initialize()
-        +initialized()
-        +speedDown(value=1)
-        +speedUp(value=1)
-        +speedValue(value)
-        +start()
-        +started()
-        +stop()
-        +stopped()
+        -banner(): void
+        -changeState(state): void
+        -initControlLoop(): void
+        -loadConfig(): void
+        +display(): void
+        +emergency(): void
+        +enterGui(value: InputType): void
+        +getBattery(): int
+        +getDistance(): float
+        +getMode(): ModeType
+        +getRemote(): int
+        +getSpeedTarget(): int
+        +getState(): State
+        +initialize(): void
+        +initialized(): void
+        +speedDown(value=1): void
+        +speedUp(value=1): void
+        +speedValue(value): void
+        +start(): void
+        +started(): void
+        +stop(): void
+        +stopped(): void
     }
 
     Winch o-left-> "state" State
@@ -64,7 +67,7 @@ namespace openwinch.mode {
         OneWay = 1
         TwoWay = 2
         Infinity = 3
-        +list()
+        +list(): Map
     }
 
     abstract class ModeFactory {
@@ -78,26 +81,27 @@ namespace openwinch.mode {
         -velocity_start: int = 1
         -velocity_stop: int = 3
         #speed_current = 0
-        -initialize()
-        -starting()
-        -stopping()
-        -fault()
-        {abstract}#extraMode()
-        #isBeginSecurity() : bool
-        +applyThrottleValue()
-        +getDistance() : float
+        -initialize(): void
+        -starting(): void
+        -stopping(): void
+        -fault(): void
+        {abstract}#extraMode(): void
+        #isBeginSecurity(): bool
+        +applyThrottleValue(): void
+        +getDistance(): float
         +getSpeedCurrent() : int
-        +runControlLoop()
+        +runControlLoop(): void
     }
 
     class OneWayMode extends ModeEngine {
-        #extraMode()
+        #extraMode(): void
     }
     class TwoWayMode extends ModeEngine{
-        #extraMode()
+        #extraMode(): void
+        #isEndSecurity(): bool
     }
     class InfinityMode extends ModeEngine{
-        #extraMode()
+        #extraMode(): void
     }
 
     ModeEngine o-right-> "board" openwinch.hardware.Board
@@ -120,28 +124,28 @@ namespace openwinch.hardware {
         -reverse: boolean = False
         -speed_mode: SpeedMode = SpeedMode.LOW
         -rotation_from_init: int = 0
-        {abstract}+emergency()
-        +getBattery()
-        +getRotationFromBegin()
-        +getRotationFromEnd()
-        +getSpeedMode()
-        {abstract}+getThrottleValue()
-        {abstract}+initialize()
-        +isReverse()
-        {abstract}+setReverse(enable: boolean)
-        {abstract}+setSpeedMode(speed_mode: SpeedMode)
-        {abstract}+setThrottleValue(value)
+        {abstract}+emergency(): void
+        +getBattery(): int
+        +getRotationFromBegin(): int
+        +getRotationFromEnd(): int
+        +getSpeedMode(): SpeedMode
+        {abstract}+getThrottleValue(): float
+        {abstract}+initialize(): void
+        +isReverse(): bool
+        {abstract}+setReverse(enable: boolean): void
+        {abstract}+setSpeedMode(speed_mode: SpeedMode): void
+        {abstract}+setThrottleValue(value: float): void
     }
 
     class Emulator extends Board {
         -value: int = 0
         -init: boolean = False
-        +emergency()
-        +getThrottleValue()
-        +initialize()
-        +setReverse(enable: boolean)
-        +setSpeedMode(speed_mode: SpeedMode)
-        +setThrottleValue(value)
+        +emergency(): void
+        +getThrottleValue(): float
+        +initialize(): void
+        +setReverse(enable: boolean): void
+        +setSpeedMode(speed_mode: SpeedMode): void
+        +setThrottleValue(value: float): void
     }
 
     class RaspberryPi extends Board {
@@ -152,17 +156,17 @@ namespace openwinch.hardware {
         -key_enter_btn: Button
         -key_left_btn: Button
         -key_right_btn: Button
-        +emergency()
+        +emergency(): void
         +getThrottleValue() : float
-        +initialize()
-        +setReverse(enable: boolean)
-        +setSpeedMode(speed_mode: SpeedMode)
-        +setThrottleValue(value)
+        +initialize(): void
+        +setReverse(enable: boolean): void
+        +setSpeedMode(speed_mode: SpeedMode): void
+        +setThrottleValue(value: float): void
     }
 
     Board ..> SpeedMode
     Board "board" o-up- "winch" openwinch.controller.Winch
-
+    Board ..> openwinch.input.InputType
 }
 
 namespace openwinch.display {
@@ -175,84 +179,110 @@ namespace openwinch.display {
     }
 
     class Gui {
-        +cursor_pos
-        +screen
-        +view_pos
-        +boot(self)
-        +createMenuIcon(self, draw, items)
-        +createMenuScroll(self, draw, items, selected_item=None)
-        +createValue(self, draw, title, value)
-        +display(self)
-        +enter(self, key)
-        +extractScreen(self)
-        +getPos(self)
-        +getWinch(self)
-        +statusBar(self, draw)
+        -device: luma.device = None
+        -display_draw_Loop: Thread = None
+        +cursor_pos: int
+        +view_pos; int
+        -drawBoot(): void
+        -drawLoop(): void
+        +boot(self): boot
+        +createMenuIcon(self, draw, items): void
+        +createMenuScroll(self, draw, items, selected_item=None): void
+        +createValue(self, draw, title, value): void
+        +display(self): void
+        +enter(self, key: InputType): void
+        +extractScreen(self): void
+        +getPos(self): int
+        +getWinch(self): Winch
+        +statusBar(self, draw): void
     }
+
+    Gui "gui" o-right- "screen" ScreenBase
+    Gui "gui" o-up-> "winch" openwinch.controller.Winch
+    Gui ..> GuiType
+    Gui ..> openwinch.input.InputType
 
     abstract class ScreenBase {
         {abstract}+countItems(self): int
-        {abstract}+display(self, draw)
-        {abstract}+enter(self, cursor_pos)
+        {abstract}+display(self, draw): void
+        {abstract}+enter(self, cursor_pos): void
     }
 
     class MainScreen extends ScreenBase {
+        -animateDistance(): void
         +countItems(self): int
-        +display(self, draw)
-        +enter(self, cursor_pos)
+        +display(self, draw): void
+        +enter(self, cursor_pos): void
     }
 
     class MenuScreen extends ScreenBase {
         +countItems(self): int
-        +display(self, draw)
-        +enter(self, cursor_pos)
+        +display(self, draw): void
+        +enter(self, cursor_pos): void
     }
 
     class ManualPositionScreen extends ScreenBase {
         +countItems(self): int
-        +display(self, draw)
-        +enter(self, cursor_pos)
+        +display(self, draw): void
+        +enter(self, cursor_pos): void
     }
 
     class SecurityDistanceScreen extends ScreenBase {
         +TITLE
         +value
         +countItems(self): int
-        +display(self, draw)
-        +enter(self, cursor_pos)
+        +display(self, draw): void
+        +enter(self, cursor_pos): void
     }
 
     class ModeSelectorScreen extends ScreenBase {
         +countItems(self): int
-        +display(self, draw)
-        +enter(self, cursor_pos)
+        +display(self, draw): void
+        +enter(self, cursor_pos): void
     }
 
     class VelocityStartScreen extends ScreenBase {
         +TITLE
         +value
         +countItems(self): int
-        +display(self, draw)
-        +enter(self, cursor_pos)
+        +display(self, draw): void
+        +enter(self, cursor_pos): void
     }
 
     class VelocityStopScreen extends ScreenBase {
         +TITLE
         +value
         +countItems(self): int
-        +display(self, draw)
-        +enter(self, cursor_pos)
+        +display(self, draw): void
+        +enter(self, cursor_pos): void
+    }
+}
+
+namespace openwinch.input {
+    enum InputType {
+        UP = 1
+        RIGHT = 2
+        DOWN = 3
+        LEFT = 4
+        ENTER = DOWN
+    }
+}
+
+namespace openwinch.keyboard {
+    class Keyboard {
+        -controlLoop: Thread
+        -runControlLoop(): void
+        +get(): InputType
     }
 
-    Gui o-right- "screen" ScreenBase
-    Gui o-up-> "winch" openwinch.controller.Winch
-    Gui ..> GuiType
+    Keyboard ..> openwinch.input.InputType
+    openwinch.controller.Winch "winch" --> "Input" Keyboard
 }
 
 namespace openwinch.config {
     class Config {
         +BOARD: String = "openwinch.hardwarePi.RaspberryPi"
-        +MODE: String = "Mode.OneWay"
+        +MODE: String = "ModeType.OneWay"
         +GUI: String = "SH1106_I2C"
     }
 

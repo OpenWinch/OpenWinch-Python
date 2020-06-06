@@ -45,6 +45,7 @@ class Gui(object):
 
     __winch = None
     __device = None
+    __display_draw_Loop = None
     screen = None
 
     # distance = 1

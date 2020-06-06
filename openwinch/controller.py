@@ -9,6 +9,7 @@ from openwinch.config import config
 from openwinch.constantes import (SPEED_INIT, SPEED_MAX, SPEED_MIN)
 from openwinch.display import Gui
 from openwinch.keyboard import Keyboard
+from openwinch.input import InputType
 from openwinch.logger import logger
 from openwinch.mode import ModeFactory, ModeType
 from openwinch.state import State
@@ -61,7 +62,7 @@ class Winch(object):
         logger.debug("Gui config : %s" % config.GUI)
         self.__gui = Gui(self)
         self.__gui.boot()
-        self._input = Keyboard(self, self.__gui)
+        self._input = Keyboard(self)
 
         logger.debug("Board config : %s" % config.BOARD)
         self.__board = loadClass(config.BOARD, self)
@@ -173,14 +174,14 @@ class Winch(object):
         """ Get actual state of winch. """
         return self.__state
 
-    def getBattery(self):
+    def getBattery(self) -> int:
         """ Get actual state of Battery. """
         return self.__board.getBattery()
 
-    def getRemote(self):
+    def getRemote(self) -> int:
         return 15
 
-    def getDistance(self):
+    def getDistance(self) -> float:
         return self.__mode.getDistance()
 
     def speedUp(self, value=1):
@@ -209,3 +210,6 @@ class Winch(object):
         """ Set speed. """
         if (value >= SPEED_MIN or value < SPEED_MAX):
             self.__speed_target = value
+
+    def enterGui(self, value: InputType):
+        self.__gui.enter(value)

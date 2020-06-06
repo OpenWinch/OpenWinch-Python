@@ -13,29 +13,31 @@ import click
 class Keyboard(object):
 
     __winch = None
-    __lcd = None
     __controlLoop = None
 
-    def __init__(self, winch, lcd):
+    def __init__(self, winch):
         self.__winch = winch
-        self.__lcd = lcd
         self.__controlLoop = threading.Thread(target=self.__runControlLoop, name="Kbd", args=(), daemon=True)
         self.__controlLoop.start()
 
     def __runControlLoop(self):
-        while(True):
+        input = InputType.UP
+        while(input is not None):
             input = self.get()
-            self.__lcd.enter(input)
+            self.__winch.enterGui(input)
 
-    def get(self):
-        k = click.getchar()
-        if k == '\x1b[A':
-            return InputType.UP
-        elif k == '\x1b[B':
-            return InputType.DOWN
-        elif k == '\x1b[C':
-            return InputType.RIGHT
-        elif k == '\x1b[D':
-            return InputType.LEFT
-        else:
-            print("not an arrow key!\n")
+    def get(self) -> InputType:
+        try:
+            k = click.getchar()
+            if k == '\x1b[A':
+                return InputType.UP
+            elif k == '\x1b[B':
+                return InputType.DOWN
+            elif k == '\x1b[C':
+                return InputType.RIGHT
+            elif k == '\x1b[D':
+                return InputType.LEFT
+            else:
+                print("not an arrow key!\n")
+        except Exception as ex:
+            return None

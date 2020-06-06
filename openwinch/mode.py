@@ -162,7 +162,7 @@ class TwoWayMode(ModeEngine):
     __standby_duration = 5
     __current_duration = 0
 
-    def _isEndSecurity(self):
+    def _isEndSecurity(self) -> bool:
         return (self._board.getRotationFromInit() >= self._board.getRotationFromExtend() - self.__security_end)
 
     def _extraMode(self):
@@ -189,7 +189,7 @@ class ModeFactory(ABC):
     """Factory to manipulate Mode"""
 
     @staticmethod
-    def modeFactory(winch, board, mode):
+    def modeFactory(winch, board, mode) -> ModeEngine:
         """ """
         if (mode == str(ModeType.OneWay)):
             return OneWayMode(winch, board)
@@ -201,7 +201,7 @@ class ModeFactory(ABC):
             raise NameError('Bad Mode config')
 
     @staticmethod
-    def getMode(modeEngine) -> ModeType:
+    def getMode(modeEngine: ModeEngine) -> ModeType:
         """ """
         if (isinstance(modeEngine, OneWayMode)):
             return ModeType.OneWay
