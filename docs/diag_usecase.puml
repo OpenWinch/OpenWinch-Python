@@ -1,0 +1,55 @@
+@startuml
+
+left to right direction
+
+title Usecase Diagram - **OpenWinch**
+
+header
+Version 0.1.0 by Mickael Gaillard
+endheader
+
+center footer
+Generated at %date("dd/MM/yyyy HH:mm")
+OpenWinch © 2020-%date("yyyy")
+endfooter
+
+actor User
+usecase Start
+usecase Stop
+usecase Emergency
+usecase Initialize
+usecase Configure
+usecase Manual
+User --> Start
+User --> Stop
+User --> Emergency
+User --> Configure
+User --> Manual
+User --> Initialize
+
+usecase "Automatique Mode" as auto
+Start ..> auto: include
+Stop ..> auto: include
+
+usecase Backward
+usecase Forward
+Manual ..> Backward: extends
+Manual ..> Forward: extends
+
+usecase "Select Automatique Mode" as mode
+usecase "Set Security Distance" as secu
+usecase "Define Start Velocity" as velStart
+usecase "Define Stop Velocity" as velStop
+Configure ..> mode: extends
+Configure ..> secu: extends
+Configure ..> velStart: extends
+Configure ..> velStop: extends
+
+
+actor Board
+usecase "Set Throttle" as setThrottle
+usecase "Set Reverse" as setReverse
+Board --> setThrottle
+Board --> setReverse
+
+@enduml

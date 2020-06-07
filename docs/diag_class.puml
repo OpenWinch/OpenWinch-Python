@@ -6,7 +6,24 @@ skinparam class {
     BorderColor Black
 }
 
-title Diag classes - OpenWinch
+skinparam titleBorderRoundCorner 5
+skinparam titleBorderThickness 2
+skinparam titleBorderColor black
+
+title Class Diagram - **OpenWinch**
+
+header
+Version 0.1.0 by Mickael Gaillard
+endheader
+
+center footer
+Generated at %date("dd/MM/yyyy HH:mm")
+OpenWinch © 2020-%date("yyyy")
+endfooter
+
+namespace openwinch.state {
+
+}
 
 namespace openwinch.controller {
 
@@ -276,7 +293,7 @@ namespace openwinch.keyboard {
     }
 
     Keyboard ..> openwinch.input.InputType
-    openwinch.controller.Winch "winch" --> "Input" Keyboard
+    openwinch.controller.Winch "winch" -- "Input" Keyboard
 }
 
 namespace openwinch.config {

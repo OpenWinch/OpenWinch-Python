@@ -1,41 +1,74 @@
 @startuml
+hide empty description
 
-title Diag states - OpenWinch
+skinparam titleBorderRoundCorner 5
+skinparam titleBorderThickness 2
+skinparam titleBorderColor black
 
-[*] --> UNKNOWN
-UNKNOWN: When system power up
-UNKNOWN --> BOOTED
+title State Diagram - **OpenWinch**
 
+header
+Version 0.1.0 by Mickael Gaillard
+endheader
+
+center footer
+Generated at %date("dd/MM/yyyy HH:mm")
+OpenWinch © 2020-%date("yyyy")
+endfooter
+
+state isBoot {
+    UNKNOWN: When system power up
+}
+
+[*] -right-> UNKNOWN
 BOOTED: When system is booted
 BOOTED: Display is enable and all function available
-BOOTED --> INIT : initialize()
+UNKNOWN --> BOOTED
 
-INIT: Initialize system (sensors & logic & actors)
-INIT: Initialize count rotation
-INIT --> IDLE : initialized()
+state isInit {
+    INIT: Initialize system (sensors & logic & actors)
+    INIT: Initialize count rotation
+}
 
-IDLE: Power motor is Up
-IDLE --> START : start()
-IDLE --> ERROR : emergency()
+BOOTED -left-> INIT : initialize()
 
-START: Motor accelarate
-note right of START: Transition state
-START --> RUNNING : started()
-START --> STOP : stop()
-START --> ERROR: emergency()
+state isStop {
+    STOP: Motor is brake
+    note left of STOP: Transition state
+    IDLE: Power motor is Up
+    STOP --> IDLE : stopped()
+}
 
-RUNNING: Motor stabilize speed
-RUNNING --> STOP : stop()
-RUNNING --> ERROR: emergency()
+state isRun {
+    START: Motor accelarate
+    note left of START: Transition state
+    RUNNING: Motor stabilize speed
+    START --> RUNNING : started()
+}
 
-STOP: Motor is brake
-note right of STOP: Transition state
-STOP --> IDLE : stopped()
-STOP --> START : start()
-STOP --> ERROR: emergency()
+state isFault {
+    ERROR: Power motor is Down
+    ERROR -left-> INIT : initialize()
+}
 
-ERROR: Power motor is Down
-ERROR -up-> INIT : initialize()
+INIT -right-> IDLE : initialized()
+
+isStop --> START : start()
+'IDLE --> START : start()
+'STOP -right-> START : start()
+
+isRun -up-> STOP: stop()
+'RUNNING --> STOP : stop()
+'START -left-> STOP : stop()
+
+isRun --> ERROR: emergency()
+'START --> ERROR: emergency()
+'RUNNING --> ERROR: emergency()
+
+isStop --> ERROR: emergency()
+'Stop --> ERROR: emergency()
+'IDLE --> ERROR : emergency()
+
 ERROR --> [*]
 
 @enduml
