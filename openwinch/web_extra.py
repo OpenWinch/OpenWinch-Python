@@ -7,12 +7,14 @@
 from flask import (Blueprint, render_template)
 from openwinch.constantes import SPEED_UNIT
 from openwinch.singleton import winch
+from openwinch.version import __version__
 
 web_extra = Blueprint('web_extra', __name__)
 
 
 def render_extra():
     return render_template("extra.html",
+                           app_version=__version__,
                            mode=winch.getMode(),
                            battery=winch.getBattery(),
                            speed_target=winch.getSpeedTarget(),

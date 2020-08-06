@@ -409,12 +409,11 @@ class ManualPositionScreen(ScreenBase):
 
 class SecurityDistanceScreen(ScreenBase):
     TITLE = "Security distance"
-    value = 10
 
     def __init__(self, gui):
         super(SecurityDistanceScreen, self).__init__(gui)
         # Load from item
-        self._gui.cursor_pos = self.value
+        self._gui.cursor_pos = self._winch.get
 
     def countItems(self) -> int:
         return 255

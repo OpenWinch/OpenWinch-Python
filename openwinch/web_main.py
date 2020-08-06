@@ -8,6 +8,7 @@ from flask import (Blueprint, render_template)
 from openwinch.constantes import SPEED_UNIT
 from openwinch.controller import State
 from openwinch.singleton import winch
+from openwinch.version import __version__
 
 web_main = Blueprint('web_main', __name__)
 
@@ -22,6 +23,7 @@ def render_main():
         enable = "orange"
 
     return render_template("index.html",
+                           app_version=__version__,
                            mode=winch.getMode(),
                            battery=winch.getBattery(),
                            speed_target=winch.getSpeedTarget(),

@@ -23,10 +23,6 @@ endfooter
 
 namespace openwinch.state {
 
-}
-
-namespace openwinch.controller {
-
     enum State {
         UNKNOWN = -999
         BOOTED = -2
@@ -47,12 +43,15 @@ namespace openwinch.controller {
         +isInit() : bool
         +isBoot() : bool
     }
+}
+
+namespace openwinch.controller {
 
     class Winch {
         -controlLoop: Thread = None
         -speed_target = SPEED_INIT
         -banner(): void
-        -changeState(state): void
+        -changeState(state: State): void
         -initControlLoop(): void
         -loadConfig(): void
         +display(): void
@@ -75,7 +74,7 @@ namespace openwinch.controller {
         +stopped(): void
     }
 
-    Winch o-left-> "state" State
+    Winch o-left-> "state" openwinch.state.State
 }
 
 namespace openwinch.mode {
